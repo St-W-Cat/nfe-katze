@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: backup-button-pfoten-cache-fix-v5 -->
+  <!-- Version: futterliste-nfe-tm-wert-fett-v7 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -364,7 +364,6 @@
 
     <section class="card">
       <h2>Futter-Liste</h2>
-      <div class="hint">Eintrag antippen, um die Werte oben anzuzeigen und zu ändern.</div>
       <div id="savedList" class="saved-list"></div>
     </section>
 
@@ -688,7 +687,7 @@
 
       const meta = document.createElement("div");
       meta.className = "food-meta";
-      meta.textContent = "NfE TM: " + fmt(item.result.nfeDry) + " · NfE: " + fmt(item.result.nfeFresh) + " · " + item.result.ratingText;
+      meta.innerHTML = "<strong>NfE TM: " + fmt(item.result.nfeDry) + "</strong> · NfE: " + fmt(item.result.nfeFresh) + " · " + item.result.ratingText;
 
       const actions = document.createElement("div");
       actions.className = "food-actions";
