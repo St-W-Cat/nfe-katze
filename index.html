@@ -149,7 +149,12 @@
       padding-left: 20px;
       padding-right: 20px;
     }
-    .backup-content { display: none; margin-top: 14px; }
+    .backup-mini {
+      display: flex;
+      justify-content: center;
+      margin: 2px 0 18px;
+    }
+    .backup-content { display: none; }
     .backup-content.visible { display: block; }
     .row {
       display: flex;
@@ -193,24 +198,20 @@
     .rating.mid { display: flex; color: var(--orange); }
     .rating.high { display: flex; color: var(--red); }
 
-    .cathead {
-      width: 34px;
-      height: 34px;
+    .paw {
+      width: 30px;
+      height: 30px;
       display: block;
       flex: 0 0 auto;
       overflow: visible;
     }
-    .cathead .head {
-      fill: white;
+    .paw .shape {
+      fill: #ffffff;
       stroke: currentColor;
       stroke-width: 5;
       stroke-linecap: round;
       stroke-linejoin: round;
       vector-effect: non-scaling-stroke;
-    }
-    .cathead .face {
-      fill: currentColor;
-      stroke: none;
     }
 
     .error, .notice {
@@ -366,38 +367,37 @@
       <div id="savedList" class="saved-list"></div>
     </section>
 
-    <section class="card">
+    <div class="backup-mini">
+      <button id="backupToggle" class="secondary backup-toggle" onclick="toggleBackup()">Backup</button>
+    </div>
+
+    <section id="backupContent" class="card backup-content">
       <h2>Backup</h2>
-      <div class="hint">Backup ist optional. Nur öffnen, wenn du Daten sichern oder wiederherstellen möchtest.</div>
+      <div class="hint">Nur öffnen, wenn du Daten sichern oder wiederherstellen möchtest.</div>
+
       <div class="actions">
-        <button id="backupToggle" class="secondary backup-toggle" onclick="toggleBackup()">Backup anzeigen</button>
+        <button class="secondary" onclick="showExport()">Daten exportieren</button>
+        <button class="secondary" onclick="showImport()">Daten importieren</button>
       </div>
 
-      <div id="backupContent" class="backup-content">
+      <div id="exportBox" style="display:none; margin-top:14px">
+        <label for="exportData">Backup-Daten</label>
+        <textarea id="exportData" readonly></textarea>
         <div class="actions">
-          <button class="secondary" onclick="showExport()">Daten exportieren</button>
-          <button class="secondary" onclick="showImport()">Daten importieren</button>
+          <button class="secondary" onclick="copyExport()">Kopieren</button>
         </div>
-
-        <div id="exportBox" style="display:none; margin-top:14px">
-          <label for="exportData">Backup-Daten</label>
-          <textarea id="exportData" readonly></textarea>
-          <div class="actions">
-            <button class="secondary" onclick="copyExport()">Kopieren</button>
-          </div>
-        </div>
-
-        <div id="importBox" style="display:none; margin-top:14px">
-          <label for="importData">Backup hier einfügen</label>
-          <textarea id="importData" placeholder="Backup-Daten hier einfügen"></textarea>
-          <div class="actions">
-            <button class="primary" onclick="importData()">Importieren</button>
-          </div>
-        </div>
-
-        <div id="backupNotice" class="notice"></div>
-        <div class="footer-note">Die Daten werden lokal in dieser Web-App gespeichert.</div>
       </div>
+
+      <div id="importBox" style="display:none; margin-top:14px">
+        <label for="importData">Backup hier einfügen</label>
+        <textarea id="importData" placeholder="Backup-Daten hier einfügen"></textarea>
+        <div class="actions">
+          <button class="primary" onclick="importData()">Importieren</button>
+        </div>
+      </div>
+
+      <div id="backupNotice" class="notice"></div>
+      <div class="footer-note">Die Daten werden lokal in dieser Web-App gespeichert.</div>
     </section>
   </main>
 
@@ -409,7 +409,7 @@
     let currentResult = null;
     let editingId = null;
 
-    const catHeadSvg = '<svg class="cathead" viewBox="0 0 128 128" aria-hidden="true"><path class="head" d="M24 44 L38 22 L54 40 C60 36 68 36 74 40 L90 22 L104 44 L104 78 C104 96 88 110 64 110 C40 110 24 96 24 78 Z"/><circle class="face" cx="50" cy="66" r="4.5"/><circle class="face" cx="78" cy="66" r="4.5"/><path class="face" d="M64 73 l-4 5 h8 z"/><path class="head" d="M50 86 C56 92 72 92 78 86" fill="none"/><path class="head" d="M48 76 H34 M48 81 H30 M80 76 H94 M80 81 H98" fill="none"/></svg>';
+    const pawSvg = '<svg class="paw" viewBox="0 0 120 120" aria-hidden="true"><ellipse class="shape" cx="24" cy="50" rx="12" ry="19" transform="rotate(-31 24 50)"/><ellipse class="shape" cx="48" cy="27" rx="13" ry="22" transform="rotate(-9 48 27)"/><ellipse class="shape" cx="72" cy="27" rx="13" ry="22" transform="rotate(9 72 27)"/><ellipse class="shape" cx="96" cy="50" rx="12" ry="19" transform="rotate(31 96 50)"/><path class="shape" d="M34 102 C20 94 22 77 36 69 C43 65 42 55 51 50 C57 46 65 46 71 50 C80 55 79 65 86 69 C100 77 102 94 86 102 C77 107 70 101 62 101 C53 101 45 108 34 102 Z"/></svg>';
 
     function el(id){ return document.getElementById(id); }
 
@@ -479,7 +479,7 @@
     function setRating(text, cls) {
       const rating = el("rating");
       rating.className = "rating" + (cls ? " " + cls : "");
-      rating.innerHTML = text ? catHeadSvg + "<span>" + text + "</span>" : "";
+      rating.innerHTML = text ? pawSvg + "<span>" + text + "</span>" : "";
     }
 
     function setDryColor(nfeDry) {
@@ -723,7 +723,7 @@
       const content = el("backupContent");
       const btn = el("backupToggle");
       const open = content.classList.toggle("visible");
-      btn.textContent = open ? "Backup ausblenden" : "Backup anzeigen";
+      btn.textContent = open ? "Backup ausblenden" : "Backup";
     }
 
     function showExport() {
