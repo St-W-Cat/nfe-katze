@@ -1,36 +1,788 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f3edff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="NfE Katze"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png"><title>NfE-Rechner Katze</title><style>
-:root{--bg:#f3f8ff;--card:#fff;--text:#172033;--muted:#647085;--accent:#8b5cf6;--accent-dark:#6d28d9;--green:#18884f;--orange:#c46a00;--red:#c62828;--line:#d8e5f5;--soft:#f7f3ff}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,var(--bg),#fff);color:var(--text);padding:20px 20px 40px}.wrap{max-width:560px;margin:auto}.card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 10px 30px rgba(20,80,160,.08);margin-bottom:16px}.title{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}.icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#efe7ff;font-size:22px}h1{margin:0;font-size:29px;line-height:1.1}h2{margin:0 0 14px;font-size:20px;text-align:center}.grid{display:grid;gap:12px;margin-top:24px}.save-grid{display:grid;gap:12px}label{display:block;font-weight:700;margin-bottom:6px;font-size:15px}input,textarea{width:100%;font-size:22px;padding:14px;border-radius:16px;border:1.5px solid var(--line);background:#fffdfb;color:var(--text);outline:none;font-family:inherit}textarea{min-height:130px;font-size:14px;line-height:1.4}.save-card input{font-size:18px}input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(139,92,246,.16)}.actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:16px}button{border:0;border-radius:16px;padding:14px;font-weight:800;font-size:16px;cursor:pointer;font-family:inherit}.primary{background:var(--accent);color:#fff;min-width:190px;padding-left:28px;padding-right:28px}.primary:active{background:var(--accent-dark)}.secondary{background:#efe7ff;color:var(--accent-dark)}.row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}.name{color:var(--muted);font-weight:700;max-width:56%}.value{font-size:28px;font-weight:900;text-align:right;white-space:nowrap}.dry-good{color:var(--green)}.dry-mid{color:var(--orange)}.dry-high{color:var(--red)}.rating{display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);align-items:center;justify-content:center;gap:10px;text-align:center;font-size:22px;font-weight:900;min-height:44px}.rating.good{display:flex;color:var(--green)}.rating.mid{display:flex;color:var(--orange)}.rating.high{display:flex;color:var(--red)}.paw{width:30px;height:30px;display:block;flex:0 0 auto;overflow:visible}.paw .shape{fill:#fff;stroke:currentColor;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}.error,.notice{display:none;margin-top:12px;padding:12px;border-radius:16px;font-weight:700;text-align:center}.error{background:#fbe0e0;color:var(--red)}.notice{background:var(--soft);color:var(--accent-dark)}.save-card{display:none}.save-card.visible{display:block}.saved-list{display:grid;gap:12px}.empty{text-align:center;color:var(--muted);font-size:15px;padding:8px 0}.food-item{border:1px solid var(--line);border-radius:18px;padding:14px;background:#fffdfb;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}.food-item:active{transform:scale(.99)}.food-item.selected{border-color:var(--accent);background:var(--soft)}.food-top{font-weight:900;font-size:18px;margin-bottom:8px}.food-top.good{color:var(--green)}.food-top.mid{color:var(--orange)}.food-top.high{color:var(--red)}.food-meta{color:var(--muted);font-size:14px;line-height:1.45}.delete-x{width:44px;height:44px;padding:0;border-radius:50%;font-size:30px;line-height:1;display:inline-flex;align-items:center;justify-content:center;background:#ffe3e3;color:var(--red)}.editing-note{display:none;margin-bottom:12px;padding:10px 12px;border-radius:14px;background:var(--soft);color:var(--accent-dark);font-weight:800;text-align:center;font-size:14px}.editing-note.visible{display:block}.hint{color:var(--muted);font-size:13px;line-height:1.45;text-align:center;margin:-4px 0 14px}.backup-box{display:none;margin-top:14px}.backup-box.visible{display:block}.footer{color:var(--muted);font-size:12px;text-align:center;line-height:1.4;margin-top:14px}
-</style></head><body><main class="wrap">
-<section class="card"><div class="title"><div class="icon">🐾</div><h1>NfE-Rechner für Katzen</h1></div><div class="grid">
-<div><label for="protein">Rohprotein (%)</label><input id="protein" inputmode="decimal" placeholder="z. B. 9,5"></div>
-<div><label for="fett">Rohfett (%)</label><input id="fett" inputmode="decimal" placeholder="z. B. 5"></div>
-<div><label for="faser">Rohfaser (%)</label><input id="faser" inputmode="decimal" placeholder="z. B. 0,5"></div>
-<div><label for="asche">Rohasche (%)</label><input id="asche" inputmode="decimal" placeholder="z. B. 2"></div>
-<div><label for="feuchte">Feuchtigkeit (%)</label><input id="feuchte" inputmode="decimal" placeholder="z. B. 82"></div>
-</div><div class="actions"><button class="primary" onclick="calculate()">Berechnen</button></div><div id="error" class="error"></div></section>
-<section class="card"><div class="row"><div class="name">NfE-Wert Trockenmasse</div><div class="value" id="nfeDry">–</div></div><div class="row"><div class="name">NfE-Wert</div><div class="value" id="nfeFresh">–</div></div><div id="rating" class="rating"></div></section>
-<section id="saveCard" class="card save-card"><h2 id="saveTitle">Dieses Futter speichern</h2><div id="editingNote" class="editing-note">Gespeichertes Futter ausgewählt – Änderungen oben oder hier anpassen und speichern.</div><div class="save-grid"><div><label for="brand">Marke</label><input id="brand" placeholder="z. B. Mjamjam"></div><div><label for="sort">Sorte</label><input id="sort" placeholder="z. B. Huhn pur"></div></div><div class="actions"><button id="saveFoodButton" class="primary" onclick="saveFood()">Futter speichern</button><button id="newFoodButton" class="secondary" onclick="newFood()" style="display:none">Neues Futter</button></div><div id="notice" class="notice"></div></section>
-<section class="card"><h2>Futter-Liste</h2><div class="hint">Eintrag antippen, um die Werte oben anzuzeigen und zu ändern.</div><div id="savedList" class="saved-list"></div></section>
-<section class="card"><h2>Backup</h2><div class="hint">Zur Sicherheit kannst du deine Futter-Liste exportieren und später wieder importieren.</div><div class="actions"><button class="secondary" onclick="showExport()">Daten exportieren</button><button class="secondary" onclick="showImport()">Daten importieren</button></div><div id="exportBox" class="backup-box"><label for="exportData">Backup-Daten</label><textarea id="exportData" readonly></textarea><div class="actions"><button class="secondary" onclick="copyExport()">Kopieren</button></div></div><div id="importBox" class="backup-box"><label for="importData">Backup hier einfügen</label><textarea id="importData" placeholder="Backup-Daten hier einfügen"></textarea><div class="actions"><button class="primary" onclick="importData()">Importieren</button></div></div><div id="backupNotice" class="notice"></div><div class="footer">Die Daten werden lokal in dieser Web-App gespeichert.</div></section>
-</main><script>
-const fields=["protein","fett","faser","asche","feuchte"],storeKey="nfe_cat_foods_pwa_v1",lastKey="nfe_cat_last_values_pwa_v1";let foods=[],currentResult=null,editingId=null;
-const pawSvg='<svg class="paw" viewBox="0 0 120 120" aria-hidden="true"><ellipse class="shape" cx="24" cy="50" rx="12" ry="19" transform="rotate(-31 24 50)"/><ellipse class="shape" cx="48" cy="27" rx="13" ry="22" transform="rotate(-9 48 27)"/><ellipse class="shape" cx="72" cy="27" rx="13" ry="22" transform="rotate(9 72 27)"/><ellipse class="shape" cx="96" cy="50" rx="12" ry="19" transform="rotate(31 96 50)"/><path class="shape" d="M34 102 C20 94 22 77 36 69 C43 65 42 55 51 50 C57 46 65 46 71 50 C80 55 79 65 86 69 C100 77 102 94 86 102 C77 107 70 101 62 101 C53 101 45 108 34 102 Z"/></svg>';
-function el(id){return document.getElementById(id)}function fmt(n){return n.toLocaleString("de-DE",{maximumFractionDigits:1,minimumFractionDigits:1})+" %"}function parseNumber(id){let raw=el(id).value.trim().replace(",",".");return raw===""?NaN:Number(raw)}
-function show(id,msg){let x=el(id);x.style.display=msg?"block":"none";x.textContent=msg||"";if(msg&&id!=="error")setTimeout(()=>{x.style.display="none";x.textContent=""},2600)}
-function getFoods(){try{let d=localStorage.getItem(storeKey);let p=d?JSON.parse(d):[];return Array.isArray(p)?p:[]}catch(e){return[]}}function setFoods(next){foods=next;localStorage.setItem(storeKey,JSON.stringify(foods));renderFoods()}
-function saveLast(){let last={};fields.forEach(id=>last[id]=el(id).value);try{localStorage.setItem(lastKey,JSON.stringify(last))}catch(e){}}function loadLast(){try{let d=localStorage.getItem(lastKey);if(!d)return;let last=JSON.parse(d);fields.forEach(id=>{if(last[id]!==undefined)el(id).value=last[id]})}catch(e){}}
-function ratingFor(n){if(n<5)return{text:"super",cls:"good"};if(n<10)return{text:"geeignet",cls:"mid"};return{text:"vermeiden",cls:"high"}}function setRating(text,cls){let r=el("rating");r.className="rating"+(cls?" "+cls:"");r.innerHTML=text?pawSvg+"<span>"+text+"</span>":""}
-function setDryColor(n){let dry=el("nfeDry");dry.classList.remove("dry-good","dry-mid","dry-high");let r=ratingFor(n);dry.classList.add(r.cls==="good"?"dry-good":r.cls==="mid"?"dry-mid":"dry-high");setRating(r.text,r.cls)}
-function calculate(){show("error","");let protein=parseNumber("protein"),fett=parseNumber("fett"),faser=parseNumber("faser"),asche=parseNumber("asche"),feuchte=parseNumber("feuchte"),vals=[protein,fett,faser,asche,feuchte];if(vals.some(v=>Number.isNaN(v))){show("error","Bitte alle fünf Werte eintragen.");return false}if(vals.some(v=>v<0||v>100)){show("error","Bitte nur Prozentwerte zwischen 0 und 100 eintragen.");return false}let dryMatter=100-feuchte;if(dryMatter<=0){show("error","Die Feuchtigkeit muss unter 100 % liegen.");return false}let nfeFresh=100-feuchte-protein-fett-faser-asche,nfeDry=nfeFresh/dryMatter*100;if(nfeFresh<-.5){show("error","Die Werte ergeben zusammen mehr als 100 %. Bitte Etikett prüfen.");return false}let safeFresh=Math.max(0,nfeFresh),safeDry=Math.max(0,nfeDry),r=ratingFor(safeDry);currentResult={protein,fett,faser,asche,feuchte,nfeFresh:safeFresh,nfeDry:safeDry,ratingText:r.text,ratingClass:r.cls};el("nfeFresh").textContent=fmt(safeFresh);el("nfeDry").textContent=fmt(safeDry);setDryColor(safeDry);saveLast();el("saveCard").classList.add("visible");if(!editingId){el("saveTitle").textContent="Dieses Futter speichern";el("saveFoodButton").textContent="Futter speichern";el("editingNote").classList.remove("visible");el("newFoodButton").style.display="none"}return true}
-function saveFood(){if(!calculate())return;let brand=el("brand").value.trim(),sort=el("sort").value.trim();if(!brand||!sort){show("notice","Bitte Marke und Sorte eintragen.");return}let item={id:editingId||String(Date.now()),brand,sort,savedAt:new Date().toISOString(),values:{protein:currentResult.protein,fett:currentResult.fett,faser:currentResult.faser,asche:currentResult.asche,feuchte:currentResult.feuchte},result:{nfeFresh:currentResult.nfeFresh,nfeDry:currentResult.nfeDry,ratingText:currentResult.ratingText,ratingClass:currentResult.ratingClass}},next=foods.slice();if(editingId){let idx=next.findIndex(f=>f.id===editingId);idx>=0?next[idx]=item:next.unshift(item);show("notice","Änderung gespeichert.")}else{next.unshift(item);show("notice","Futter gespeichert.")}setFoods(next);editingId=item.id;setEditMode(item)}
-function setEditMode(item){editingId=item.id;el("saveCard").classList.add("visible");el("saveTitle").textContent="Futter bearbeiten";el("saveFoodButton").textContent="Änderung speichern";el("editingNote").classList.add("visible");el("newFoodButton").style.display="inline-flex";renderFoods()}
-function newFood(){editingId=null;fields.forEach(id=>el(id).value="");el("brand").value="";el("sort").value="";el("nfeFresh").textContent="–";el("nfeDry").textContent="–";el("nfeDry").classList.remove("dry-good","dry-mid","dry-high");setRating("","");currentResult=null;el("saveTitle").textContent="Dieses Futter speichern";el("saveFoodButton").textContent="Futter speichern";el("editingNote").classList.remove("visible");el("newFoodButton").style.display="none";renderFoods();scrollTo({top:0,behavior:"smooth"})}
-function selectFood(id){let item=foods.find(f=>f.id===id);if(!item)return;fields.forEach(k=>el(k).value=item.values[k]);el("brand").value=item.brand;el("sort").value=item.sort;editingId=item.id;calculate();setEditMode(item);scrollTo({top:0,behavior:"smooth"})}
-function deleteFood(id,e){if(e)e.stopPropagation();let item=foods.find(f=>f.id===id);if(!item||!confirm("„"+item.brand+" – "+item.sort+"“ wirklich löschen?"))return;setFoods(foods.filter(f=>f.id!==id));if(editingId===id)newFood()}
-function makeFoodNode(item){let box=document.createElement("div");box.className="food-item"+(item.id===editingId?" selected":"");box.onclick=()=>selectFood(item.id);let main=document.createElement("div"),top=document.createElement("div"),meta=document.createElement("div"),actions=document.createElement("div"),del=document.createElement("button");main.className="food-main";top.className="food-top "+item.result.ratingClass;top.textContent=item.brand+" – "+item.sort;meta.className="food-meta";meta.textContent="NfE TM: "+fmt(item.result.nfeDry)+" · NfE: "+fmt(item.result.nfeFresh)+" · "+item.result.ratingText;actions.className="food-actions";del.className="delete-x";del.textContent="×";del.setAttribute("aria-label","Futter löschen");del.onclick=e=>deleteFood(item.id,e);actions.appendChild(del);main.appendChild(top);main.appendChild(meta);box.appendChild(main);box.appendChild(actions);return box}
-function renderFoods(){let list=el("savedList");list.innerHTML="";if(!foods.length){let empty=document.createElement("div");empty.className="empty";empty.textContent="Noch kein Futter gespeichert.";list.appendChild(empty);return}foods.forEach(i=>list.appendChild(makeFoodNode(i)))}
-function showExport(){el("importBox").classList.remove("visible");el("exportBox").classList.add("visible");el("exportData").value=JSON.stringify(foods,null,2)}function showImport(){el("exportBox").classList.remove("visible");el("importBox").classList.add("visible")}
-async function copyExport(){let t=el("exportData").value;try{await navigator.clipboard.writeText(t);show("backupNotice","Backup wurde kopiert.")}catch(e){el("exportData").select();document.execCommand("copy");show("backupNotice","Backup wurde kopiert.")}}
-function importData(){let raw=el("importData").value.trim();if(!raw){show("backupNotice","Bitte Backup-Daten einfügen.");return}try{let p=JSON.parse(raw);if(!Array.isArray(p))throw Error();setFoods(p.filter(i=>i&&i.brand&&i.sort&&i.values&&i.result));show("backupNotice","Backup wurde importiert.");el("importData").value=""}catch(e){show("backupNotice","Backup konnte nicht gelesen werden.")}}
-fields.forEach(id=>el(id).addEventListener("input",()=>{if(fields.every(f=>el(f).value.trim()!==""))calculate()}));foods=getFoods();loadLast();renderFoods();if(fields.every(id=>el(id).value.trim()!==""))calculate();if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("service-worker.js").catch(()=>{}));
-</script></body></html>
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#8b5cf6">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NfE Katze">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <title>NfE-Rechner Katze</title>
+  <style>
+    :root {
+      --bg: #f3f8ff;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #647085;
+      --accent: #8b5cf6;
+      --accent-dark: #6d28d9;
+      --green: #18884f;
+      --orange: #c46a00;
+      --red: #c62828;
+      --line: #d8e5f5;
+      --soft: #f7f3ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, var(--bg), #ffffff);
+      color: var(--text);
+      padding: 20px 20px 40px;
+    }
+    .wrap { max-width: 560px; margin: 0 auto; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(20, 80, 160, .08);
+      margin-bottom: 16px;
+    }
+    .title {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 0 0 8px;
+      text-align: center;
+    }
+    .icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #efe7ff;
+      overflow: hidden;
+      box-shadow: 0 3px 10px rgba(0,0,0,.08);
+    }
+    .icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    h1 {
+      margin: 0;
+      font-size: 29px;
+      line-height: 1.1;
+      text-align: center;
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 20px;
+      text-align: center;
+    }
+    .grid, .save-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .grid { margin-top: 24px; }
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+    input, textarea {
+      width: 100%;
+      font-size: 22px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1.5px solid var(--line);
+      background: #fffdfb;
+      color: var(--text);
+      outline: none;
+      font-family: inherit;
+    }
+    textarea {
+      min-height: 130px;
+      font-size: 14px;
+      line-height: 1.4;
+      resize: vertical;
+    }
+    .save-card input { font-size: 18px; }
+    input:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(139, 92, 246, .16);
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 14px;
+      font-weight: 800;
+      font-size: 16px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .primary {
+      background: var(--accent);
+      color: white;
+      min-width: 190px;
+      width: auto;
+      padding-left: 28px;
+      padding-right: 28px;
+    }
+    .primary:active { background: var(--accent-dark); }
+    .secondary {
+      background: #efe7ff;
+      color: var(--accent-dark);
+    }
+    .danger {
+      background: #ffe3e3;
+      color: var(--red);
+    }
+    .backup-toggle {
+      min-width: 0;
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+    .backup-content { display: none; margin-top: 14px; }
+    .backup-content.visible { display: block; }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .row:last-child { border-bottom: 0; }
+    .name {
+      color: var(--muted);
+      font-weight: 700;
+      max-width: 56%;
+    }
+    .value {
+      font-size: 28px;
+      font-weight: 900;
+      text-align: right;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .dry-good { color: var(--green); }
+    .dry-mid { color: var(--orange); }
+    .dry-high { color: var(--red); }
+    .rating {
+      display: none;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 900;
+      min-height: 44px;
+      background: transparent;
+    }
+    .rating.good { display: flex; color: var(--green); }
+    .rating.mid { display: flex; color: var(--orange); }
+    .rating.high { display: flex; color: var(--red); }
+
+    .cathead {
+      width: 34px;
+      height: 34px;
+      display: block;
+      flex: 0 0 auto;
+      overflow: visible;
+    }
+    .cathead .head {
+      fill: white;
+      stroke: currentColor;
+      stroke-width: 5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
+    .cathead .face {
+      fill: currentColor;
+      stroke: none;
+    }
+
+    .error, .notice {
+      display: none;
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 16px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .error { background: #fbe0e0; color: var(--red); }
+    .notice { background: var(--soft); color: var(--accent-dark); }
+    .save-card { display: none; }
+    .save-card.visible { display: block; }
+    .saved-list { display: grid; gap: 12px; }
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+      padding: 8px 0;
+    }
+    .food-item {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      background: #fffdfb;
+      cursor: pointer;
+      transition: border-color .15s ease, background .15s ease, transform .15s ease;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+    .food-item:active { transform: scale(.99); }
+    .food-item.selected {
+      border-color: var(--accent);
+      background: var(--soft);
+    }
+    .food-main { min-width: 0; }
+    .food-top {
+      display: flex;
+      align-items: center;
+      font-weight: 900;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .food-top.good { color: var(--green); }
+    .food-top.mid { color: var(--orange); }
+    .food-top.high { color: var(--red); }
+    .food-meta {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .food-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .delete-x {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 30px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffe3e3;
+      color: var(--red);
+    }
+    .editing-note {
+      display: none;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: var(--soft);
+      color: var(--accent-dark);
+      font-weight: 800;
+      text-align: center;
+      font-size: 14px;
+    }
+    .editing-note.visible { display: block; }
+    .hint {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      margin: -4px 0 14px;
+    }
+    .footer-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <div class="title">
+        <div class="icon"><img src="header-logo.png" alt=""></div>
+        <h1>NfE-Rechner für Katzen</h1>
+      </div>
+
+      <div class="grid">
+        <div><label for="protein">Rohprotein (%)</label><input id="protein" inputmode="decimal" placeholder="z. B. 9,5"></div>
+        <div><label for="fett">Rohfett (%)</label><input id="fett" inputmode="decimal" placeholder="z. B. 5"></div>
+        <div><label for="faser">Rohfaser (%)</label><input id="faser" inputmode="decimal" placeholder="z. B. 0,5"></div>
+        <div><label for="asche">Rohasche (%)</label><input id="asche" inputmode="decimal" placeholder="z. B. 2"></div>
+        <div><label for="feuchte">Feuchtigkeit (%)</label><input id="feuchte" inputmode="decimal" placeholder="z. B. 82"></div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" onclick="calculate()">Berechnen</button>
+      </div>
+
+      <div id="error" class="error"></div>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <div class="name">NfE-Wert Trockenmasse</div>
+        <div class="value" id="nfeDry">–</div>
+      </div>
+      <div class="row">
+        <div class="name">NfE-Wert</div>
+        <div class="value" id="nfeFresh">–</div>
+      </div>
+      <div id="rating" class="rating"></div>
+    </section>
+
+    <section id="saveCard" class="card save-card">
+      <h2 id="saveTitle">Dieses Futter speichern</h2>
+      <div id="editingNote" class="editing-note">Gespeichertes Futter ausgewählt – Änderungen oben oder hier anpassen und speichern.</div>
+      <div class="save-grid">
+        <div><label for="brand">Marke</label><input id="brand" placeholder="z. B. Mjamjam"></div>
+        <div><label for="sort">Sorte</label><input id="sort" placeholder="z. B. Huhn pur"></div>
+      </div>
+      <div class="actions">
+        <button id="saveFoodButton" class="primary" onclick="saveFood()">Futter speichern</button>
+        <button id="newFoodButton" class="secondary" onclick="newFood()" style="display:none">Neues Futter</button>
+      </div>
+      <div id="notice" class="notice"></div>
+    </section>
+
+    <section class="card">
+      <h2>Futter-Liste</h2>
+      <div class="hint">Eintrag antippen, um die Werte oben anzuzeigen und zu ändern.</div>
+      <div id="savedList" class="saved-list"></div>
+    </section>
+
+    <section class="card">
+      <h2>Backup</h2>
+      <div class="hint">Backup ist optional. Nur öffnen, wenn du Daten sichern oder wiederherstellen möchtest.</div>
+      <div class="actions">
+        <button id="backupToggle" class="secondary backup-toggle" onclick="toggleBackup()">Backup anzeigen</button>
+      </div>
+
+      <div id="backupContent" class="backup-content">
+        <div class="actions">
+          <button class="secondary" onclick="showExport()">Daten exportieren</button>
+          <button class="secondary" onclick="showImport()">Daten importieren</button>
+        </div>
+
+        <div id="exportBox" style="display:none; margin-top:14px">
+          <label for="exportData">Backup-Daten</label>
+          <textarea id="exportData" readonly></textarea>
+          <div class="actions">
+            <button class="secondary" onclick="copyExport()">Kopieren</button>
+          </div>
+        </div>
+
+        <div id="importBox" style="display:none; margin-top:14px">
+          <label for="importData">Backup hier einfügen</label>
+          <textarea id="importData" placeholder="Backup-Daten hier einfügen"></textarea>
+          <div class="actions">
+            <button class="primary" onclick="importData()">Importieren</button>
+          </div>
+        </div>
+
+        <div id="backupNotice" class="notice"></div>
+        <div class="footer-note">Die Daten werden lokal in dieser Web-App gespeichert.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const fields = ["protein", "fett", "faser", "asche", "feuchte"];
+    const storeKey = "nfe_cat_foods_pwa_v2";
+    const lastValuesKey = "nfe_cat_last_values_pwa_v2";
+    let foods = [];
+    let currentResult = null;
+    let editingId = null;
+
+    const catHeadSvg = '<svg class="cathead" viewBox="0 0 128 128" aria-hidden="true"><path class="head" d="M24 44 L38 22 L54 40 C60 36 68 36 74 40 L90 22 L104 44 L104 78 C104 96 88 110 64 110 C40 110 24 96 24 78 Z"/><circle class="face" cx="50" cy="66" r="4.5"/><circle class="face" cx="78" cy="66" r="4.5"/><path class="face" d="M64 73 l-4 5 h8 z"/><path class="head" d="M50 86 C56 92 72 92 78 86" fill="none"/><path class="head" d="M48 76 H34 M48 81 H30 M80 76 H94 M80 81 H98" fill="none"/></svg>';
+
+    function el(id){ return document.getElementById(id); }
+
+    function getStoredFoods() {
+      try {
+        const data = localStorage.getItem(storeKey);
+        const parsed = data ? JSON.parse(data) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function setStoredFoods(nextFoods) {
+      foods = nextFoods;
+      localStorage.setItem(storeKey, JSON.stringify(foods));
+      renderFoods();
+    }
+
+    function saveLastValues() {
+      const last = {};
+      fields.forEach(id => last[id] = el(id).value);
+      try { localStorage.setItem(lastValuesKey, JSON.stringify(last)); } catch (e) {}
+    }
+
+    function clearLastValues() {
+      try { localStorage.removeItem(lastValuesKey); } catch (e) {}
+    }
+
+    function loadLastValues() {
+      try {
+        const data = localStorage.getItem(lastValuesKey);
+        if (!data) return;
+        const last = JSON.parse(data);
+        fields.forEach(id => { if (last[id] !== undefined) el(id).value = last[id]; });
+      } catch (e) {}
+    }
+
+    function parseNumber(id) {
+      const raw = el(id).value.trim().replace(",", ".");
+      if (raw === "") return NaN;
+      return Number(raw);
+    }
+
+    function fmt(num) {
+      return num.toLocaleString("de-DE", { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + " %";
+    }
+
+    function showMessage(id, msg) {
+      const box = el(id);
+      box.style.display = msg ? "block" : "none";
+      box.textContent = msg || "";
+      if (msg && id !== "error") {
+        setTimeout(() => {
+          box.style.display = "none";
+          box.textContent = "";
+        }, 2600);
+      }
+    }
+
+    function getRating(nfeDry) {
+      if (nfeDry < 5) return { text: "super", cls: "good" };
+      if (nfeDry < 10) return { text: "geeignet", cls: "mid" };
+      return { text: "vermeiden", cls: "high" };
+    }
+
+    function setRating(text, cls) {
+      const rating = el("rating");
+      rating.className = "rating" + (cls ? " " + cls : "");
+      rating.innerHTML = text ? catHeadSvg + "<span>" + text + "</span>" : "";
+    }
+
+    function setDryColor(nfeDry) {
+      const dry = el("nfeDry");
+      dry.classList.remove("dry-good", "dry-mid", "dry-high");
+      const rating = getRating(nfeDry);
+      if (rating.cls === "good") dry.classList.add("dry-good");
+      if (rating.cls === "mid") dry.classList.add("dry-mid");
+      if (rating.cls === "high") dry.classList.add("dry-high");
+      setRating(rating.text, rating.cls);
+    }
+
+    function calculate() {
+      showMessage("error", "");
+      const protein = parseNumber("protein");
+      const fett = parseNumber("fett");
+      const faser = parseNumber("faser");
+      const asche = parseNumber("asche");
+      const feuchte = parseNumber("feuchte");
+      const values = [protein, fett, faser, asche, feuchte];
+
+      if (values.some(v => Number.isNaN(v))) {
+        showMessage("error", "Bitte alle fünf Werte eintragen.");
+        return false;
+      }
+      if (values.some(v => v < 0 || v > 100)) {
+        showMessage("error", "Bitte nur Prozentwerte zwischen 0 und 100 eintragen.");
+        return false;
+      }
+
+      const dryMatter = 100 - feuchte;
+      if (dryMatter <= 0) {
+        showMessage("error", "Die Feuchtigkeit muss unter 100 % liegen.");
+        return false;
+      }
+
+      const nfeFresh = 100 - feuchte - protein - fett - faser - asche;
+      const nfeDry = (nfeFresh / dryMatter) * 100;
+
+      if (nfeFresh < -0.5) {
+        showMessage("error", "Die Werte ergeben zusammen mehr als 100 %. Bitte Etikett prüfen.");
+        return false;
+      }
+
+      const safeFresh = Math.max(0, nfeFresh);
+      const safeDry = Math.max(0, nfeDry);
+      const rating = getRating(safeDry);
+
+      currentResult = {
+        protein, fett, faser, asche, feuchte,
+        nfeFresh: safeFresh,
+        nfeDry: safeDry,
+        ratingText: rating.text,
+        ratingClass: rating.cls
+      };
+
+      el("nfeFresh").textContent = fmt(safeFresh);
+      el("nfeDry").textContent = fmt(safeDry);
+      setDryColor(safeDry);
+      saveLastValues();
+
+      el("saveCard").classList.add("visible");
+      if (!editingId) {
+        el("saveTitle").textContent = "Dieses Futter speichern";
+        el("saveFoodButton").textContent = "Futter speichern";
+        el("editingNote").classList.remove("visible");
+        el("newFoodButton").style.display = "none";
+      }
+      return true;
+    }
+
+    function clearAfterSave(message) {
+      editingId = null;
+      fields.forEach(id => el(id).value = "");
+      el("brand").value = "";
+      el("sort").value = "";
+      el("nfeFresh").textContent = "–";
+      el("nfeDry").textContent = "–";
+      el("nfeDry").classList.remove("dry-good", "dry-mid", "dry-high");
+      setRating("", "");
+      currentResult = null;
+      clearLastValues();
+      el("saveTitle").textContent = "Dieses Futter speichern";
+      el("saveFoodButton").textContent = "Futter speichern";
+      el("editingNote").classList.remove("visible");
+      el("newFoodButton").style.display = "none";
+      el("saveCard").classList.remove("visible");
+      renderFoods();
+      if (message) showMessage("notice", message);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function saveFood() {
+      if (!calculate()) return;
+
+      const wasEditing = !!editingId;
+      const brand = el("brand").value.trim();
+      const sort = el("sort").value.trim();
+
+      if (!brand || !sort) {
+        showMessage("notice", "Bitte Marke und Sorte eintragen.");
+        return;
+      }
+
+      const item = {
+        id: editingId || String(Date.now()),
+        brand,
+        sort,
+        savedAt: new Date().toISOString(),
+        values: {
+          protein: currentResult.protein,
+          fett: currentResult.fett,
+          faser: currentResult.faser,
+          asche: currentResult.asche,
+          feuchte: currentResult.feuchte
+        },
+        result: {
+          nfeFresh: currentResult.nfeFresh,
+          nfeDry: currentResult.nfeDry,
+          ratingText: currentResult.ratingText,
+          ratingClass: currentResult.ratingClass
+        }
+      };
+
+      let nextFoods = foods.slice();
+      if (editingId) {
+        const idx = nextFoods.findIndex(f => f.id === editingId);
+        if (idx >= 0) nextFoods[idx] = item;
+        else nextFoods.unshift(item);
+      } else {
+        nextFoods.unshift(item);
+      }
+
+      setStoredFoods(nextFoods);
+      clearAfterSave(wasEditing ? "Änderung gespeichert." : "Futter gespeichert.");
+    }
+
+    function setEditMode(item) {
+      editingId = item.id;
+      el("saveCard").classList.add("visible");
+      el("saveTitle").textContent = "Futter bearbeiten";
+      el("saveFoodButton").textContent = "Änderung speichern";
+      el("editingNote").classList.add("visible");
+      el("newFoodButton").style.display = "inline-flex";
+      renderFoods();
+    }
+
+    function newFood() {
+      editingId = null;
+      fields.forEach(id => el(id).value = "");
+      el("brand").value = "";
+      el("sort").value = "";
+      el("nfeFresh").textContent = "–";
+      el("nfeDry").textContent = "–";
+      el("nfeDry").classList.remove("dry-good", "dry-mid", "dry-high");
+      setRating("", "");
+      currentResult = null;
+      clearLastValues();
+      el("saveTitle").textContent = "Dieses Futter speichern";
+      el("saveFoodButton").textContent = "Futter speichern";
+      el("editingNote").classList.remove("visible");
+      el("newFoodButton").style.display = "none";
+      renderFoods();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function selectFood(id) {
+      const item = foods.find(f => f.id === id);
+      if (!item) return;
+
+      el("protein").value = item.values.protein;
+      el("fett").value = item.values.fett;
+      el("faser").value = item.values.faser;
+      el("asche").value = item.values.asche;
+      el("feuchte").value = item.values.feuchte;
+      el("brand").value = item.brand;
+      el("sort").value = item.sort;
+
+      editingId = item.id;
+      calculate();
+      setEditMode(item);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function deleteFood(id, event) {
+      if (event) event.stopPropagation();
+      const item = foods.find(f => f.id === id);
+      if (!item) return;
+      if (!confirm("„" + item.brand + " – " + item.sort + "“ wirklich löschen?")) return;
+      setStoredFoods(foods.filter(f => f.id !== id));
+      if (editingId === id) newFood();
+    }
+
+    function makeFoodNode(item) {
+      const box = document.createElement("div");
+      box.className = "food-item" + (item.id === editingId ? " selected" : "");
+      box.onclick = () => selectFood(item.id);
+
+      const main = document.createElement("div");
+      main.className = "food-main";
+
+      const top = document.createElement("div");
+      top.className = "food-top " + item.result.ratingClass;
+      top.textContent = item.brand + " – " + item.sort;
+
+      const meta = document.createElement("div");
+      meta.className = "food-meta";
+      meta.textContent = "NfE TM: " + fmt(item.result.nfeDry) + " · NfE: " + fmt(item.result.nfeFresh) + " · " + item.result.ratingText;
+
+      const actions = document.createElement("div");
+      actions.className = "food-actions";
+
+      const del = document.createElement("button");
+      del.className = "delete-x";
+      del.textContent = "×";
+      del.setAttribute("aria-label", "Futter löschen");
+      del.onclick = (event) => deleteFood(item.id, event);
+
+      actions.appendChild(del);
+      main.appendChild(top);
+      main.appendChild(meta);
+      box.appendChild(main);
+      box.appendChild(actions);
+      return box;
+    }
+
+    function renderFoods() {
+      const list = el("savedList");
+      list.innerHTML = "";
+      if (!foods.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Noch kein Futter gespeichert.";
+        list.appendChild(empty);
+        return;
+      }
+      foods.forEach(item => list.appendChild(makeFoodNode(item)));
+    }
+
+    function toggleBackup() {
+      const content = el("backupContent");
+      const btn = el("backupToggle");
+      const open = content.classList.toggle("visible");
+      btn.textContent = open ? "Backup ausblenden" : "Backup anzeigen";
+    }
+
+    function showExport() {
+      el("importBox").style.display = "none";
+      el("exportBox").style.display = "block";
+      el("exportData").value = JSON.stringify(foods, null, 2);
+    }
+
+    function showImport() {
+      el("exportBox").style.display = "none";
+      el("importBox").style.display = "block";
+    }
+
+    async function copyExport() {
+      const text = el("exportData").value;
+      try {
+        await navigator.clipboard.writeText(text);
+        showMessage("backupNotice", "Backup wurde kopiert.");
+      } catch (e) {
+        el("exportData").select();
+        document.execCommand("copy");
+        showMessage("backupNotice", "Backup wurde kopiert.");
+      }
+    }
+
+    function importData() {
+      const raw = el("importData").value.trim();
+      if (!raw) {
+        showMessage("backupNotice", "Bitte Backup-Daten einfügen.");
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) throw new Error("Kein Array");
+        const cleaned = parsed.filter(item => item && item.brand && item.sort && item.values && item.result);
+        setStoredFoods(cleaned);
+        el("importData").value = "";
+        showMessage("backupNotice", "Backup wurde importiert.");
+      } catch (e) {
+        showMessage("backupNotice", "Backup konnte nicht gelesen werden.");
+      }
+    }
+
+    fields.forEach(id => {
+      el(id).addEventListener("input", () => {
+        if (fields.every(field => el(field).value.trim() !== "")) calculate();
+      });
+    });
+
+    foods = getStoredFoods();
+    loadLastValues();
+    renderFoods();
+    if (fields.every(id => el(id).value.trim() !== "")) calculate();
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
