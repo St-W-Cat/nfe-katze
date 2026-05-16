@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: futterliste-nfe-tm-wert-fett-v7 -->
+  <!-- Version: futterliste-bewertung-fett-farbig-v8 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -267,6 +267,12 @@
       font-size: 14px;
       line-height: 1.45;
     }
+    .food-rating {
+      font-weight: 900;
+    }
+    .food-rating.good { color: var(--green); }
+    .food-rating.mid { color: var(--orange); }
+    .food-rating.high { color: var(--red); }
     .food-actions {
       display: flex;
       align-items: center;
@@ -687,7 +693,7 @@
 
       const meta = document.createElement("div");
       meta.className = "food-meta";
-      meta.innerHTML = "<strong>NfE TM: " + fmt(item.result.nfeDry) + "</strong> · NfE: " + fmt(item.result.nfeFresh) + " · " + item.result.ratingText;
+      meta.innerHTML = "<strong>NfE TM: " + fmt(item.result.nfeDry) + "</strong> · NfE: " + fmt(item.result.nfeFresh) + " · <span class=\"food-rating " + item.result.ratingClass + "\">" + item.result.ratingText + "</span>";
 
       const actions = document.createElement("div");
       actions.className = "food-actions";
