@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: futterliste-bewertung-fett-farbig-v8 -->
+  <!-- Version: futterliste-abc-v9 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -722,7 +722,14 @@
         list.appendChild(empty);
         return;
       }
-      foods.forEach(item => list.appendChild(makeFoodNode(item)));
+
+      const sortedFoods = foods.slice().sort((a, b) => {
+        const brandCompare = (a.brand || "").localeCompare(b.brand || "", "de", { sensitivity: "base" });
+        if (brandCompare !== 0) return brandCompare;
+        return (a.sort || "").localeCompare(b.sort || "", "de", { sensitivity: "base" });
+      });
+
+      sortedFoods.forEach(item => list.appendChild(makeFoodNode(item)));
     }
 
     function toggleBackup() {
