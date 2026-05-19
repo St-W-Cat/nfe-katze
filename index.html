@@ -10,6 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
+  <!-- Version: marke-sorte-gleichgross-v12 -->
   <!-- Version: futterliste-abc-v9 -->
   <style>
     :root {
@@ -254,10 +255,20 @@
     .food-main { min-width: 0; }
     .food-top {
       display: flex;
-      align-items: center;
-      font-weight: 900;
-      font-size: 18px;
+      flex-direction: column;
+      align-items: flex-start;
+      font-size: 16px;
       margin-bottom: 8px;
+      line-height: 1.25;
+    }
+    .food-brand {
+      font-weight: 900;
+      font-size: 16px;
+    }
+    .food-sort {
+      font-weight: 800;
+      font-size: 16px;
+      margin-top: 2px;
     }
     .food-top.good { color: var(--green); }
     .food-top.mid { color: var(--orange); }
@@ -358,9 +369,17 @@
       <h2 id="saveTitle">Dieses Futter speichern</h2>
       <div id="editingNote" class="editing-note">Gespeichertes Futter ausgewählt – Änderungen oben oder hier anpassen und speichern.</div>
       <div class="save-grid">
-        <div><label for="brand">Marke</label><input id="brand" placeholder="z. B. Mjamjam"></div>
-        <div><label for="sort">Sorte</label><input id="sort" placeholder="z. B. Huhn pur"></div>
+        <div><label for="brand">Marke</label><input id="brand" list="brandOptions" placeholder="z. B. MjAMjAM"></div>
+        <div><label for="sort">Sorte</label><input id="sort" list="sortOptions" placeholder="z. B. Huhn"></div>
+        <div><label for="packaging">Verpackung</label><input id="packaging" list="packagingOptions" placeholder="z. B. Dose"></div>
+        <div><label for="weight">Gewicht</label><input id="weight" list="weightOptions" placeholder="z. B. 400 g"></div>
+        <div><label for="lifeAge">Lebensalter</label><input id="lifeAge" list="lifeAgeOptions" placeholder="z. B. Adult"></div>
       </div>
+      <datalist id="brandOptions"></datalist>
+      <datalist id="sortOptions"></datalist>
+      <datalist id="packagingOptions"></datalist>
+      <datalist id="weightOptions"></datalist>
+      <datalist id="lifeAgeOptions"></datalist>
       <div class="actions">
         <button id="saveFoodButton" class="primary" onclick="saveFood()">Futter speichern</button>
         <button id="newFoodButton" class="secondary" onclick="newFood()" style="display:none">Neues Futter</button>
@@ -409,6 +428,26 @@
 
   <script>
     const fields = ["protein", "fett", "faser", "asche", "feuchte"];
+    const suggestionOptions = {
+      brandOptions: ["Affinity Advance", "Affinity Advance Feline", "Affinity Advance Veterinary Diets Cat", "Affinity Ultima", "Affinity Ultima Cat Expert Nutrition", "Affinity Ultima Delicious", "Affinity Ultima Delicious Mousse", "Affinity Ultima Nature", "Affinity Ultima Nature Paté", "Almo Nature", "Almo Nature Bio Organic", "Almo Nature Daily", "Almo Nature Daily Mousse", "Almo Nature Daily Stückchen in Gelee", "Almo Nature Daily Stückchen in Sauce", "Almo Nature Functional", "Almo Nature HFC", "Almo Nature HFC Complete", "Almo Nature HFC Jelly", "Almo Nature HFC Mousse", "ANIfit", "ANIfit Bio", "AniForte", "AniForte PureNature", "animonda Carny", "animonda Carny Country", "animonda Carny Ocean", "animonda Carny Pouch", "animonda Carny Single Protein", "animonda Integra Protect", "animonda vom Feinsten", "animonda vom Feinsten Feine Vielfalt", "animonda vom Feinsten in Gelee", "animonda vom Feinsten in Sauce", "animonda vom Feinsten Mildes Menü", "animonda vom Feinsten Milkies", "animonda vom Feinsten mit Schlemmerkern", "animonda vom Feinsten Mousse", "animonda vom Feinsten NoGrain", "animonda vom Feinsten Raffinesse in Gelee", "animonda vom Feinsten Raffinesse in Sauce", "Applaws", "Applaws Cat in Soße", "Applaws Cat Natural in Brühe", "Applaws Cat Pot", "Applaws in Brühe", "Applaws in Gelee", "Applaws Mousse", "Benek Super Chunks", "Benek Super Filets ins Soße", "Benek Super Gedämpfte Filets", "Benek Super Getreidefrei Chunks", "Benek Super Getreidefrei Gedämpfte Filets", "Benek Super Professional Line", "Best Nature", "Bozita", "Bozita Häppchen in Gelee", "Bozita Häppchen in Sauce", "Brit Care Cat", "Brit Care Cat Fillets in Gravy", "Brit Care Cat Fillets in Jelly", "Brit Premium By Nature", "Brit Vet Diet Cat Cans", "Brit Vet Diet Cat Soup", "Catessy Feine Pasteten", "Catessy Häppchen in Gelee", "Catessy Häppchen in Sauce", "Catit Cuisine Bites", "Catit Cuisine Creamy", "Catit Cuisine Dinner", "Catit Cuisine Divine Shreds", "Catit Cuisine Duet", "Catit Cuisine Eintöpfe", "Catit Cuisine Fillet", "Catit Cuisine Mousse", "Catit Cuisine Pastete", "Cat's Love", "Cat's Love Bio", "Catz finefood Classic", "Catz finefood Fillets", "Catz finefood Organic", "Catz finefood Pure", "Catz finefood Ragout", "Concept for Life", "Concept for Life All Cats", "Concept for Life Light", "Concept for Life Veterinary Diet", "Coshida Feine Pastete", "Coshida Pure Taste", "Coshida Selection", "Cosma Asia in Jelly", "Cosma Bowl", "Cosma Duo Layer", "Cosma Nature", "Cosma Original in Jelly", "Cosma Pure", "Cosma Soup", "Crave Fleischstreifen", "Crave Pastete", "Dein Bestes Augenschmaus", "Dein Bestes BBQ", "Dein Bestes Bio", "Dein Bestes Das Süppchen", "Dein Bestes Exquisit", "Dein Bestes Himmlisch Mousse", "Dein Bestes Hofladen", "Dein Bestes in Gellee", "Dein Bestes in Sauce", "Dein Bestes Naturverliebt", "Dein Bestes Omas Küchenklassiker", "Dein Bestes Pastete", "Dein Bestes Sensitive", "Dein Bestes Sternenküche", "Dogs´n Tiger Nassfutter", "Dogs´n Tiger Premium Nassfutter", "Edgard & Cooper Filets", "Edgard & Cooper Paté", "Edgard & Cooper Stückchen in Soße", "Farmina N&D Natural", "Farmina N&D Ocean", "Farmina N&D Prime", "Farmina N&D Pumpkin", "Farmina N&D Quinoa", "Farmina Vet Life", "Feline Finest", "Feline Porta 21", "Felix Doppelt Lecker", "Felix Naturally Delicious", "Felix Sensations Crunchy", "Felix Sensations Extras", "Felix Sensations Gelee", "Felix Sensations Sauce", "Felix So gut wie es aussieht Gelee", "Felix So gut wie es aussieht Sauce", "Felix Soup", "Felix Tasty Shreds", "Fellicita", "Feringa Bio Menüs", "Feringa Classic Meat Menüs", "Feringa Katzensuppe", "Feringa Single Meat", "Fit+Fun Jelly", "Fit+Fun Paté", "Fit+Fun Ragout", "Gourmet A la Carte", "Gourmet Gold Délicatesse en Sauce", "Gourmet Gold Feine Komposition", "Gourmet Gold Feine Pastete", "Gourmet Gold Raffiniertes Ragout", "Gourmet Gold Saftig-feine Streifen", "Gourmet Gold Zarte Häppchen in Sauce", "Gourmet Mon Petit Intense", "Gourmet Nature's Creations", "Gourmet Nature's Creations Mousse", "Gourmet Nature's Creations Soup", "Gourmet Perle Duetto", "Gourmet Perle Erlesene Streifen", "Gourmet Perle Genuss in Gelee", "Gourmet Perle Genuss in Sauce", "Gourmet Revelations Feine Häppchen", "Gourmet Revelations Mousse", "GranataPet Delicatessen", "GranataPet Filet à la carte", "GranataPet Suppenkasper", "GranataPet Symphonie", "Green Petfood FairCat", "Green Petfood FairCat Balance", "Green Petfood FairCat Care", "Green Petfood FairCat Fit", "Green Petfood FairCat Sensitive", "Green Petfood Paté", "Greenwoods Delight", "Greenwoods Joy", "Happy Cat Bio", "Happy Cat Meat in Sauce", "Happy Cat Minkas Duo", "Happy Cat Snack Soup", "Happy Cat VET Diät", "Herrmann's Manufaktur Kreativ-Mix", "Herrmann's Manufaktur Reinfleisch", "Herrmann's Manufaktur Selection", "Hill's Prescription", "Hill's Science Plan", "Hill's Vet Essentials", "IAMS Advanced Nutrition", "IAMS Delights", "IAMS Naturally", "Ja Feine Häppchen", "Ja Feine Pasteten", "Ja Genießer-Menü", "Ja Herzhafte Stückchen", "Ja Herzhaftes Ragout", "Ja Saftige Pastete", "Ja Zarte Stückchen in feiner Sauce", "Josera Filet", "Josera Josicat", "Josera Josicat Finest", "Josera Josicat Paté", "Josera Josicat Rich", "Josera Nassfutter", "Josera Paté", "Josera Soup", "Kattovit Feline Diet", "Kattovit Feline Drink", "Kattovit Vital Care", "Kitty Cat Filet in Paté", "Kitty Cat Paté", "Leonardo Drinks", "Leonardo extra Filet", "Leonardo Finest Selection", "Leonardo Pulled Beef", "Leonardo Quality Selection", "Leonardo Superior Selection", "Liebesgut Bio", "Liebesgut Sensitiv", "Life Cat Natural", "Life Cat Natural Mousse", "Life Cat Natural Soup", "Lifecat Le Ricette", "Lifecat Natural Trancetti", "Lifecat Pouch", "Lily's Kitchen Shredded Fillets", "Lily's Kitchen Smooth Paté", "Lily's Kitchen Spooky Paté", "Lily's Kitchen Tasty Cuts", "Lucky Lou Extra Food", "Lucky Lou Food Code", "Lucky Lou Lifestage", "Lucky Lou Mäusle", "Lucky Lou SuperMono", "Lucky-Kitty", "Lyra Pet Lecker.Pet Balu´s", "Lyra Pet Lecker.Pet Emily´s", "Lyra Pet Lecker.Pet Leo´s", "Lyra Pet Lecker.Pet Mia´s", "Lyra Pet Lecker.Pet Surf'n'Turf", "MAC's", "MAC's Feinschmeckermenü", "MAC's Monoprotein", "MAC's Paw Power Drink", "MAC's Vetcare", "Miamor Cat Cream", "Miamor Feine Beute", "Miamor Feine Filets in Jelly", "Miamor Feine Filets in Sauce", "Miamor Feine Filets Mini", "Miamor Feine Filets naturelle", "Miamor Feines & Filet", "Miamor Milde Mahlzeit", "Miamor Pastete", "Miamor Pâté & Filet", "Miamor Ragout Royale in Gelee", "Miamor Ragout Royale in Sauce", "Miamor Sensible Snack", "Miamor Trinkfein", "MjAMjAM", "MjAMjAM an Soße", "MjAMjAM Bio", "MjAMjAM Chicks & Friends", "MjAMjAM Duett", "MjAMjAM Insekt", "MjAMjAM Monoprotein", "MjAMjAM Purer Filetgenuss", "MjAMjAM Purer Fleischgenuss", "MjAMjAM VetCat", "MjAMjAM Wellness", "Moments", "Moments Diamond", "Moments Selection", "Moments Suppe", "Moments Topping", "MultiFit", "MultiFit Care", "MultiFit Classic", "MultiFit It's Me Elvis", "MultiFit Jelly", "MultiFit Mini", "MultiFit Sauce", "MultiFit Simply Good", "MultiFit Special Jelly", "MultiFit Tasty Duo", "Natural Trainer", "Natural Trainer Paté", "Natural Trainer Straccetti", "Natural Trainer Straccetti Difficult Appetite", "Nature's Variety Bites", "Nature's Variety Pâté", "Pawsome", "Pawsome light", "Perfect Fit", "Perfect Fit Indoor", "Perfect Fit Natural Vitality", "Perfect Fit Sensitive", "Pets Deli Filet Menü", "Pets Deli Filet Menü Beauty", "Pets Deli Hypo Care Filet Menü", "Pets Deli Juicy Filets", "Pets Deli Meaty Pâté", "Pets Deli Pure Meat", "Pets Deli Pure Meat Belly", "Pets Deli Pure Meat Hypo Care", "Pets Deli Pure Meat Immunity", "Pets Deli Pure Meat Yummy", "Pets Deli Saucen Menü", "Pets Deli Vet", "Porta 21 Superfood", "Premiere cats love nature", "Premiere Deluxe Ragout", "Premiere Fine Filets", "Premiere Finest Gelee", "Premiere Gelee", "Premiere Meat Menu", "Premiere Pure Pâté", "Premiere Royal Ragout", "Premiere Soft Mousse", "Premiere Tender Stripes", "Pure Nature", "Purina Cat Chow in Gelee", "Purina Cat Chow in Sauce", "Purina ONE", "Purina ONE Coat & Hairball", "Purina ONE Indoor", "Purina ONE Sensitive", "Purina Pro Plan", "Purina Pro Plan Delicate", "Purina Pro Plan Feline FortiFlora", "Purina Pro Plan HC Hydra Care", "Purina Pro Plan Veterinary Diets", "Purizon Chicken Fillet", "Purizon Organic", "Purizon Single Meat", "Purizon Superfoods", "Real Nature Original", "Real Nature Original Filet & Mousse", "Real Nature Wilderness Adult", "Real Nature Wilderness Kitten", "Real Nature Wilderness Senior", "REAVET Feine Menues", "Royal Canin", "Royal Canin Ageing", "Royal Canin Appetite Control Airlift", "Royal Canin Appetite Control Care", "Royal Canin British Shorthair Adult", "Royal Canin Digestive Care", "Royal Canin Hair & Skin", "Royal Canin Indoor", "Royal Canin Instinctive", "Royal Canin Kitten", "Royal Canin Light Weight Care", "Royal Canin Maine Coon Adult", "Royal Canin Persian Adult", "Royal Canin Sensory Feel", "Royal Canin Sensory Smell", "Royal Canin Sensory Smell Taste Feel", "Royal Canin Sensory Taste", "Royal Canin Urinary Care", "Royal Canin Veterinary", "Sanabelle", "Sanabelle All Meat Pastete", "Sanabelle Filets in Soße", "Sanabelle Freshe Mieze", "Sanabelle Heimat", "Schesir After Dark", "Schesir Cat Soup", "Schesir Complements", "Schesir Complete Nutrition", "Schesir Kitten", "Schesir Mousse", "Schmusy Nature", "Schmusy Ragout in Gelee", "Schmusy Ragout in Sauce", "Select Gold", "Select Gold Acceptance", "Select Gold Acceptance Adult", "Select Gold Classic Fit", "Select Gold Digestion", "Select Gold Hair & Skin", "Select Gold Indoor", "Select Gold Light", "Select Gold Medica", "Select Gold Outdoor", "Select Gold Pure", "Select Gold Sensitive Monoprotein", "Select Gold Urinary", "Smilla", "Smilla Deluxe Häppchen in Gelee", "Smilla Deluxe Häppchen in Sauce", "Smilla Deluxe Mousse", "Smilla Essentials Häppchen in Gelee", "Smilla Essentials Häppchen in Sauce", "Smilla Fine Menu", "Smilla Indoor", "Smilla Katzendrink", "Smilla light", "Smilla Töpfchen", "Smilla Veterinary Diet", "STRAYZ Bio Futter", "STRAYZ Bio in Sauce", "Taste of the Wild", "Terra Felis", "Terra Felis Famousse", "Terra Felis Soupreme", "The Better Cat Monoprotein", "The Better Cat Pur", "The Better Cat Suppe", "Tundra Cat", "Vitakraft Drink", "Vitakraft Liquid Snack", "Vitakraft Poésie Classique in Gelee", "Vitakraft Poésie Classique in Sauce", "Vitakraft Poésie Création in Gelee", "Vitakraft Poésie Création in Sauce", "Vitakraft Poésie Délice", "Vitakraft Poésie Délice Plus", "Vitakraft Poésie Mousse", "Wild Freedom", "Wild Freedom Instinctive", "Wild Freedom Triple Taste", "Wildes Land Bio", "Wildes Land Classic", "Wildes Land Filet", "Wildes Land PUR", "Wildes Land Ragout", "Wildes Land Soup", "Winston Bio", "Winston Deluxe", "Winston Feine Häppchen", "Winston Feine Mahlzeit in Gelee", "Winston Feine Mahlzeit in Sauce", "Winston Feine Paté", "Winston Gourmet Filets", "Winston Gourmet Ragout", "Winston Menü", "Winston Menüs", "Winston Nature", "Winston Pastete", "Winston Saftige Häppchen", "Winston Schlemmer-Menü", "Winston Sensitiv-Menü", "Winston Wellness-Menü", "WOW Cat Filet", "WOW Cat Paté", "WOW Cat Samtige Mousse", "WOW Cat Saucen-Menü", "WOW Cat Suppe", "Yarrah Bio Bröckchen", "Yarrah Bio Filets", "Yarrah Bio Pastete", "ZooRoyal", "ZooRoyal All Meat", "ZooRoyal Bio Pastete", "ZooRoyal Delikate Stückchen", "ZooRoyal Feine Paté", "ZooRoyal Genuss Pastete", "ZooRoyal Gourmet Leckerbissen", "ZooRoyal Gourmet Menü in Gelee", "ZooRoyal Grill Menü in Sauce", "ZooRoyal Minkas", "ZooRoyal Minkas Naturkost", "ZooRoyal Monoprotein Pastete", "ZooRoyal Mousse", "ZooRoyal Pastete", "ZooRoyal Zarte Hünchenfilets"],
+      sortOptions: ["Büffel", "Büffel & Blaubeeren", "Edelfisch", "Ente", "Ente & Geflügel", "Ente & Kaninchen", "Ente & Käse", "Ente & Pute", "Ente & Huhn", "Ente & Huhn & Karotten", "Ente & Pulled Beef", "Ente, Kaninchen & Rind", "Ente, Makrele & Schwein", "Ente, Pute & Huhn", "Entenherzen", "Fasan", "Fasan & Cranberries", "Fasan, Forelle & Schwein", "Fasan, Weißfisch & Huhn", "Fleischmenü", "Forelle", "Gans", "Gans & Leber", "Geflügel", "Geflügel & Cranberry", "Geflügel & Ei", "Geflügel & Lachs", "Geflügel & Leber", "Geflügel, Ente & Truthahn", "Geflügel, Hering & Shrimps", "Geflügelleber", "Geflügelherzen", "Hering", "Herz", "Huhn", "Huhn & Ei", "Huhn & Ente", "Huhn & Kaninchen", "Huhn & Lachs", "Huhn & Lamm", "Huhn & Makrele", "Huhn & Pute", "Huhn & Rind", "Huhn & Katzenminze", "Huhn & Pulled Beef", "Huhn, Ente & Gans", "Huhn, Ente & Shrimps", "Huhn, Kalb & Reh", "Huhn, Pute & Entenherzen", "Huhn, Pute & Forelle", "Huhn, Pute & Kaninchen", "Hühnerherzen", "Hühnchenleber", "Kabeljau", "Kalb", "Kalb & Geflügel", "Kalb & Gemüse", "Kalb & Pute", "Kalb & Rind", "Kalb pur", "Kaninchen", "Kaninchen & Cranberries", "Kaninchen & Geflügel", "Lachs", "Lachs & Huhn", "Lamm", "Lamm & Geflügel", "Lamm & Pute", "Lamm & Pulled Beef", "Leber", "Makrele", "Meeresfrüchte", "Multifleisch-Cocktail", "Pferd", "Pute", "Pute & Forelle", "Pute & Huhn", "Pute & Hühnchenleber", "Pute & Lamm", "Pute, Huhn & Preiselbeere", "Pute, Huhn & Shrimps", "Pute, Rind & Heidelbeeren", "Pute, Wild & Insekten", "Putenherz", "Reh", "Rind", "Rind & Forelle", "Rind & Herz", "Rind & Huhn", "Rind & Hühnerherzen", "Rind & Kabeljau", "Rind & Kaninchen", "Rind & Lamm", "Rind & Leber", "Rind & Pute", "Rind & Putenherz", "Rind & Truthahn", "Rind & Wild", "Rind, Pute & Kaninchen", "Rind, Pute & Shrimps", "Scholle", "Seefisch", "Seelachs", "Shrimps", "Thunfisch", "Truthahn", "Weißfisch", "Wild", "Wild & Heidelbeeren", "Wild & Pute"],
+      packagingOptions: ["Dose", "Beutel", "Schale", "TetraPak", "Tube"],
+      weightOptions: ["50 g", "70 g", "80 g", "85 g", "95 g", "100 g", "125 g", "135 g", "150 g", "156 g", "185 g", "190 g", "195 g", "200 g", "300 g", "400 g", "800 g"],
+      lifeAgeOptions: ["Adult", "Junior", "Kitten", "Senior", "Sensitive", "Sterilised", "Young"]
+    };
+    function setupSuggestions() {
+      Object.entries(suggestionOptions).forEach(([listId, values]) => {
+        const list = el(listId);
+        if (!list) return;
+        list.innerHTML = "";
+        values.forEach(value => {
+          const option = document.createElement("option");
+          option.value = value;
+          list.appendChild(option);
+        });
+      });
+    }
+
     const storeKey = "nfe_cat_foods_pwa_v2";
     const lastValuesKey = "nfe_cat_last_values_pwa_v2";
     let foods = [];
@@ -562,6 +601,9 @@
       fields.forEach(id => el(id).value = "");
       el("brand").value = "";
       el("sort").value = "";
+      el("packaging").value = "";
+      el("weight").value = "";
+      el("lifeAge").value = "";
       el("nfeFresh").textContent = "–";
       el("nfeDry").textContent = "–";
       el("nfeDry").classList.remove("dry-good", "dry-mid", "dry-high");
@@ -584,9 +626,12 @@
       const wasEditing = !!editingId;
       const brand = el("brand").value.trim();
       const sort = el("sort").value.trim();
+      const packaging = el("packaging").value.trim();
+      const weight = el("weight").value.trim();
+      const lifeAge = el("lifeAge").value.trim();
 
-      if (!brand || !sort) {
-        showMessage("notice", "Bitte Marke und Sorte eintragen.");
+      if (!brand || !sort || !packaging || !weight || !lifeAge) {
+        showMessage("notice", "Bitte Marke, Sorte, Verpackung, Gewicht und Lebensalter eintragen.");
         return;
       }
 
@@ -594,6 +639,9 @@
         id: editingId || String(Date.now()),
         brand,
         sort,
+        packaging,
+        weight,
+        lifeAge,
         savedAt: new Date().toISOString(),
         values: {
           protein: currentResult.protein,
@@ -638,6 +686,9 @@
       fields.forEach(id => el(id).value = "");
       el("brand").value = "";
       el("sort").value = "";
+      el("packaging").value = "";
+      el("weight").value = "";
+      el("lifeAge").value = "";
       el("nfeFresh").textContent = "–";
       el("nfeDry").textContent = "–";
       el("nfeDry").classList.remove("dry-good", "dry-mid", "dry-high");
@@ -689,11 +740,21 @@
 
       const top = document.createElement("div");
       top.className = "food-top " + item.result.ratingClass;
-      top.textContent = item.brand + " – " + item.sort;
+      const brandLine = document.createElement("div");
+      brandLine.className = "food-brand";
+      brandLine.textContent = item.brand || "";
+
+      const sortLine = document.createElement("div");
+      sortLine.className = "food-sort";
+      sortLine.textContent = item.sort || "";
+
+      top.appendChild(brandLine);
+      top.appendChild(sortLine);
 
       const meta = document.createElement("div");
       meta.className = "food-meta";
-      meta.innerHTML = "<strong>NfE TM: " + fmt(item.result.nfeDry) + "</strong> · NfE: " + fmt(item.result.nfeFresh) + " · <span class=\"food-rating " + item.result.ratingClass + "\">" + item.result.ratingText + "</span>";
+      const details = [item.packaging, item.weight, item.lifeAge].filter(Boolean).join(" · ");
+      meta.innerHTML = (details ? details + "<br>" : "") + "<strong>NfE TM: " + fmt(item.result.nfeDry) + "</strong> · NfE: " + fmt(item.result.nfeFresh) + " · <span class=\"food-rating " + item.result.ratingClass + "\">" + item.result.ratingText + "</span>";
 
       const actions = document.createElement("div");
       actions.className = "food-actions";
@@ -724,9 +785,12 @@
       }
 
       const sortedFoods = foods.slice().sort((a, b) => {
-        const brandCompare = (a.brand || "").localeCompare(b.brand || "", "de", { sensitivity: "base" });
-        if (brandCompare !== 0) return brandCompare;
-        return (a.sort || "").localeCompare(b.sort || "", "de", { sensitivity: "base" });
+        const fieldsToSort = ["brand", "sort", "packaging", "weight", "lifeAge"];
+        for (const field of fieldsToSort) {
+          const cmp = (a[field] || "").localeCompare(b[field] || "", "de", { sensitivity: "base", numeric: true });
+          if (cmp !== 0) return cmp;
+        }
+        return 0;
       });
 
       sortedFoods.forEach(item => list.appendChild(makeFoodNode(item)));
@@ -786,6 +850,7 @@
       });
     });
 
+    setupSuggestions();
     foods = getStoredFoods();
     loadLastValues();
     renderFoods();
