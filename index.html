@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: ohne-berechnen-optionale-futterfelder-v15 -->
+  <!-- Version: scroll-zur-futterliste-v19 -->
   <!-- Version: futterliste-abc-v9 -->
   <style>
     :root {
@@ -111,23 +111,37 @@
     .save-card input { font-size: 18px; }
     .suggest-wrap {
       display: grid;
-      grid-template-columns: 1fr 44px;
+      grid-template-columns: 1fr 40px 44px;
       gap: 8px;
       align-items: center;
     }
-    .suggest-btn {
-      width: 44px;
+    .suggest-btn,
+    .clear-field-btn {
       height: 44px;
-      min-width: 44px;
       padding: 0;
       border-radius: 14px;
-      background: #efe7ff;
-      color: var(--accent-dark);
-      font-size: 26px;
       line-height: 1;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+    }
+    .suggest-btn {
+      width: 44px;
+      min-width: 44px;
+      background: #efe7ff;
+      color: var(--accent-dark);
+      font-size: 26px;
+    }
+    .clear-field-btn {
+      width: 40px;
+      min-width: 40px;
+      background: #eef2f7;
+      color: var(--muted);
+      font-size: 24px;
+    }
+    .clear-field-btn:active {
+      background: #ffe3e3;
+      color: var(--red);
     }
     .chooser-overlay {
       position: fixed;
@@ -233,10 +247,16 @@
       padding-left: 28px;
       padding-right: 28px;
     }
+    .save-card .primary {
+      min-width: 150px;
+    }
     .primary:active { background: var(--accent-dark); }
     .secondary {
       background: #efe7ff;
       color: var(--accent-dark);
+    }
+    .save-card .secondary {
+      min-width: 140px;
     }
     .danger {
       background: #ffe3e3;
@@ -459,12 +479,12 @@
 
     <section id="saveCard" class="card save-card">
       <h2 id="saveTitle">Dieses Futter speichern</h2>
-      <div id="editingNote" class="editing-note">Gespeichertes Futter ausgewählt – Änderungen oben oder hier anpassen und speichern.</div>
       <div class="save-grid">
         <div>
           <label for="brand">Marke</label>
           <div class="suggest-wrap">
             <input id="brand" placeholder="z. B. MjAMjAM">
+            <button type="button" class="clear-field-btn" aria-label="Marke löschen" onclick="clearField('brand')">×</button>
             <button type="button" class="suggest-btn" aria-label="Marke auswählen" onclick="openChooser('brand','brandOptions','Marke')">+</button>
           </div>
         </div>
@@ -472,6 +492,7 @@
           <label for="sort">Sorte</label>
           <div class="suggest-wrap">
             <input id="sort" placeholder="z. B. Huhn">
+            <button type="button" class="clear-field-btn" aria-label="Sorte löschen" onclick="clearField('sort')">×</button>
             <button type="button" class="suggest-btn" aria-label="Sorte auswählen" onclick="openChooser('sort','sortOptions','Sorte')">+</button>
           </div>
         </div>
@@ -479,6 +500,7 @@
           <label for="packaging">Verpackung</label>
           <div class="suggest-wrap">
             <input id="packaging" placeholder="z. B. Dose">
+            <button type="button" class="clear-field-btn" aria-label="Verpackung löschen" onclick="clearField('packaging')">×</button>
             <button type="button" class="suggest-btn" aria-label="Verpackung auswählen" onclick="openChooser('packaging','packagingOptions','Verpackung')">+</button>
           </div>
         </div>
@@ -486,6 +508,7 @@
           <label for="weight">Gewicht</label>
           <div class="suggest-wrap">
             <input id="weight" placeholder="z. B. 400 g">
+            <button type="button" class="clear-field-btn" aria-label="Gewicht löschen" onclick="clearField('weight')">×</button>
             <button type="button" class="suggest-btn" aria-label="Gewicht auswählen" onclick="openChooser('weight','weightOptions','Gewicht')">+</button>
           </div>
         </div>
@@ -493,6 +516,7 @@
           <label for="lifeAge">Lebensalter</label>
           <div class="suggest-wrap">
             <input id="lifeAge" placeholder="z. B. Adult">
+            <button type="button" class="clear-field-btn" aria-label="Lebensalter löschen" onclick="clearField('lifeAge')">×</button>
             <button type="button" class="suggest-btn" aria-label="Lebensalter auswählen" onclick="openChooser('lifeAge','lifeAgeOptions','Lebensalter')">+</button>
           </div>
         </div>
@@ -513,11 +537,12 @@
       </div>
       <div class="actions">
         <button id="saveFoodButton" class="primary" onclick="saveFood()">Futter speichern</button>
+        <button id="saveAsNewButton" class="primary" onclick="saveFoodAsNew()" style="display:none">neues Futter</button>
       </div>
       <div id="notice" class="notice"></div>
     </section>
 
-    <section class="card">
+    <section id="foodListSection" class="card">
       <h2>Futter-Liste</h2>
       <div id="savedList" class="saved-list"></div>
     </section>
@@ -631,6 +656,13 @@
       closeChooser();
     }
 
+    function clearField(id) {
+      const input = el(id);
+      if (!input) return;
+      input.value = "";
+      input.focus();
+    }
+
     const storeKey = "nfe_cat_foods_pwa_v2";
     const lastValuesKey = "nfe_cat_last_values_pwa_v2";
     let foods = [];
@@ -696,6 +728,12 @@
           box.textContent = "";
         }, 2600);
       }
+    }
+
+    function scrollToFoodList() {
+      const section = el("foodListSection");
+      if (!section) return;
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
     function getRating(nfeDry) {
@@ -773,7 +811,7 @@
       if (!editingId) {
         el("saveTitle").textContent = "Dieses Futter speichern";
         el("saveFoodButton").textContent = "Futter speichern";
-        el("editingNote").classList.remove("visible");
+        el("saveAsNewButton").style.display = "none";
       }
       return true;
     }
@@ -794,17 +832,25 @@
       clearLastValues();
       el("saveTitle").textContent = "Dieses Futter speichern";
       el("saveFoodButton").textContent = "Futter speichern";
-      el("editingNote").classList.remove("visible");
+      el("saveAsNewButton").style.display = "none";
       el("saveCard").classList.remove("visible");
       renderFoods();
       if (message) showMessage("notice", message);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      setTimeout(scrollToFoodList, 80);
     }
 
     function saveFood() {
+      saveFoodInternal(false);
+    }
+
+    function saveFoodAsNew() {
+      saveFoodInternal(true);
+    }
+
+    function saveFoodInternal(forceNew) {
       if (!calculate()) return;
 
-      const wasEditing = !!editingId;
+      const wasEditing = !!editingId && !forceNew;
       const brand = el("brand").value.trim();
       const sort = el("sort").value.trim();
       const packaging = el("packaging").value.trim();
@@ -812,7 +858,7 @@
       const lifeAge = el("lifeAge").value.trim();
 
       const item = {
-        id: editingId || String(Date.now()),
+        id: forceNew ? String(Date.now()) : (editingId || String(Date.now())),
         brand,
         sort,
         packaging,
@@ -835,7 +881,7 @@
       };
 
       let nextFoods = foods.slice();
-      if (editingId) {
+      if (editingId && !forceNew) {
         const idx = nextFoods.findIndex(f => f.id === editingId);
         if (idx >= 0) nextFoods[idx] = item;
         else nextFoods.unshift(item);
@@ -844,7 +890,7 @@
       }
 
       setStoredFoods(nextFoods);
-      clearAfterSave(wasEditing ? "Änderung gespeichert." : "Futter gespeichert.");
+      clearAfterSave(forceNew ? "Neues Futter gespeichert." : (wasEditing ? "Änderung gespeichert." : "Futter gespeichert."));
     }
 
     function setEditMode(item) {
@@ -852,7 +898,7 @@
       el("saveCard").classList.add("visible");
       el("saveTitle").textContent = "Futter bearbeiten";
       el("saveFoodButton").textContent = "Änderung speichern";
-      el("editingNote").classList.add("visible");
+      el("saveAsNewButton").style.display = "inline-flex";
       renderFoods();
     }
 
@@ -872,7 +918,7 @@
       clearLastValues();
       el("saveTitle").textContent = "Dieses Futter speichern";
       el("saveFoodButton").textContent = "Futter speichern";
-      el("editingNote").classList.remove("visible");
+      el("saveAsNewButton").style.display = "none";
       renderFoods();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
