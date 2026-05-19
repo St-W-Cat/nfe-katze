@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: marke-sorte-gleichgross-v12 -->
+  <!-- Version: plus-button-v14 -->
   <!-- Version: futterliste-abc-v9 -->
   <style>
     :root {
@@ -109,6 +109,102 @@
       resize: vertical;
     }
     .save-card input { font-size: 18px; }
+    .suggest-wrap {
+      display: grid;
+      grid-template-columns: 1fr 44px;
+      gap: 8px;
+      align-items: center;
+    }
+    .suggest-btn {
+      width: 44px;
+      height: 44px;
+      min-width: 44px;
+      padding: 0;
+      border-radius: 14px;
+      background: #efe7ff;
+      color: var(--accent-dark);
+      font-size: 26px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .chooser-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: rgba(23, 32, 51, .38);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 16px;
+    }
+    .chooser-overlay.visible {
+      display: flex;
+    }
+    .chooser-panel {
+      width: 100%;
+      max-width: 560px;
+      max-height: 82vh;
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.24);
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 12px;
+    }
+    .chooser-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .chooser-title {
+      font-weight: 900;
+      font-size: 20px;
+    }
+    .chooser-close {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      padding: 0;
+      font-size: 28px;
+      line-height: 1;
+      background: #ffe3e3;
+      color: var(--red);
+    }
+    .chooser-search {
+      font-size: 18px;
+      padding: 13px;
+    }
+    .chooser-list {
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+      padding-right: 2px;
+    }
+    .choice-item {
+      width: 100%;
+      text-align: left;
+      background: #fffdfb;
+      color: var(--text);
+      border: 1px solid var(--line);
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .choice-empty {
+      color: var(--muted);
+      text-align: center;
+      padding: 12px;
+      font-size: 14px;
+    }
+    .chooser-actions {
+      display: flex;
+      justify-content: center;
+    }
     input:focus, textarea:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 4px rgba(139, 92, 246, .16);
@@ -369,17 +465,56 @@
       <h2 id="saveTitle">Dieses Futter speichern</h2>
       <div id="editingNote" class="editing-note">Gespeichertes Futter ausgewählt – Änderungen oben oder hier anpassen und speichern.</div>
       <div class="save-grid">
-        <div><label for="brand">Marke</label><input id="brand" list="brandOptions" placeholder="z. B. MjAMjAM"></div>
-        <div><label for="sort">Sorte</label><input id="sort" list="sortOptions" placeholder="z. B. Huhn"></div>
-        <div><label for="packaging">Verpackung</label><input id="packaging" list="packagingOptions" placeholder="z. B. Dose"></div>
-        <div><label for="weight">Gewicht</label><input id="weight" list="weightOptions" placeholder="z. B. 400 g"></div>
-        <div><label for="lifeAge">Lebensalter</label><input id="lifeAge" list="lifeAgeOptions" placeholder="z. B. Adult"></div>
+        <div>
+          <label for="brand">Marke</label>
+          <div class="suggest-wrap">
+            <input id="brand" placeholder="z. B. MjAMjAM">
+            <button type="button" class="suggest-btn" aria-label="Marke auswählen" onclick="openChooser('brand','brandOptions','Marke')">+</button>
+          </div>
+        </div>
+        <div>
+          <label for="sort">Sorte</label>
+          <div class="suggest-wrap">
+            <input id="sort" placeholder="z. B. Huhn">
+            <button type="button" class="suggest-btn" aria-label="Sorte auswählen" onclick="openChooser('sort','sortOptions','Sorte')">+</button>
+          </div>
+        </div>
+        <div>
+          <label for="packaging">Verpackung</label>
+          <div class="suggest-wrap">
+            <input id="packaging" placeholder="z. B. Dose">
+            <button type="button" class="suggest-btn" aria-label="Verpackung auswählen" onclick="openChooser('packaging','packagingOptions','Verpackung')">+</button>
+          </div>
+        </div>
+        <div>
+          <label for="weight">Gewicht</label>
+          <div class="suggest-wrap">
+            <input id="weight" placeholder="z. B. 400 g">
+            <button type="button" class="suggest-btn" aria-label="Gewicht auswählen" onclick="openChooser('weight','weightOptions','Gewicht')">+</button>
+          </div>
+        </div>
+        <div>
+          <label for="lifeAge">Lebensalter</label>
+          <div class="suggest-wrap">
+            <input id="lifeAge" placeholder="z. B. Adult">
+            <button type="button" class="suggest-btn" aria-label="Lebensalter auswählen" onclick="openChooser('lifeAge','lifeAgeOptions','Lebensalter')">+</button>
+          </div>
+        </div>
       </div>
-      <datalist id="brandOptions"></datalist>
-      <datalist id="sortOptions"></datalist>
-      <datalist id="packagingOptions"></datalist>
-      <datalist id="weightOptions"></datalist>
-      <datalist id="lifeAgeOptions"></datalist>
+
+      <div id="chooserOverlay" class="chooser-overlay" onclick="closeChooser(event)">
+        <div class="chooser-panel" onclick="event.stopPropagation()">
+          <div class="chooser-head">
+            <div id="chooserTitle" class="chooser-title">Auswahl</div>
+            <button type="button" class="chooser-close" onclick="closeChooser()">×</button>
+          </div>
+          <input id="chooserSearch" class="chooser-search" placeholder="Suchen oder frei eintippen">
+          <div id="chooserList" class="chooser-list"></div>
+          <div class="chooser-actions">
+            <button type="button" class="secondary" onclick="useFreeChooserText()">Eingabe übernehmen</button>
+          </div>
+        </div>
+      </div>
       <div class="actions">
         <button id="saveFoodButton" class="primary" onclick="saveFood()">Futter speichern</button>
         <button id="newFoodButton" class="secondary" onclick="newFood()" style="display:none">Neues Futter</button>
@@ -436,16 +571,69 @@
       lifeAgeOptions: ["Adult", "Junior", "Kitten", "Senior", "Sensitive", "Sterilised", "Young"]
     };
     function setupSuggestions() {
-      Object.entries(suggestionOptions).forEach(([listId, values]) => {
-        const list = el(listId);
-        if (!list) return;
-        list.innerHTML = "";
-        values.forEach(value => {
-          const option = document.createElement("option");
-          option.value = value;
-          list.appendChild(option);
-        });
+      // Die Vorschläge werden jetzt über den eigenen Auswahl-Dialog genutzt,
+      // damit es auch auf iPhone/Home-Bildschirm zuverlässig funktioniert.
+    }
+
+    let chooserTargetInput = "";
+    let chooserOptionsId = "";
+    let chooserValues = [];
+
+    function openChooser(inputId, optionsId, title) {
+      chooserTargetInput = inputId;
+      chooserOptionsId = optionsId;
+      chooserValues = suggestionOptions[optionsId] || [];
+
+      el("chooserTitle").textContent = title;
+      el("chooserSearch").value = el(inputId).value || "";
+      el("chooserOverlay").classList.add("visible");
+      renderChooserList();
+      setTimeout(() => el("chooserSearch").focus(), 80);
+    }
+
+    function closeChooser(event) {
+      if (event && event.target && event.target.id !== "chooserOverlay") return;
+      el("chooserOverlay").classList.remove("visible");
+    }
+
+    function renderChooserList() {
+      const q = (el("chooserSearch").value || "").trim().toLocaleLowerCase("de");
+      const list = el("chooserList");
+      list.innerHTML = "";
+
+      const filtered = chooserValues
+        .filter(value => !q || value.toLocaleLowerCase("de").includes(q))
+        .slice(0, 120);
+
+      if (!filtered.length) {
+        const empty = document.createElement("div");
+        empty.className = "choice-empty";
+        empty.textContent = "Kein Vorschlag gefunden. Du kannst die Eingabe trotzdem übernehmen.";
+        list.appendChild(empty);
+        return;
+      }
+
+      filtered.forEach(value => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "choice-item";
+        btn.textContent = value;
+        btn.onclick = () => chooseValue(value);
+        list.appendChild(btn);
       });
+    }
+
+    function chooseValue(value) {
+      if (!chooserTargetInput) return;
+      el(chooserTargetInput).value = value;
+      closeChooser();
+    }
+
+    function useFreeChooserText() {
+      const value = el("chooserSearch").value.trim();
+      if (!chooserTargetInput || !value) return;
+      el(chooserTargetInput).value = value;
+      closeChooser();
     }
 
     const storeKey = "nfe_cat_foods_pwa_v2";
@@ -712,8 +900,11 @@
       el("faser").value = item.values.faser;
       el("asche").value = item.values.asche;
       el("feuchte").value = item.values.feuchte;
-      el("brand").value = item.brand;
-      el("sort").value = item.sort;
+      el("brand").value = item.brand || "";
+      el("sort").value = item.sort || "";
+      el("packaging").value = item.packaging || "";
+      el("weight").value = item.weight || "";
+      el("lifeAge").value = item.lifeAge || "";
 
       editingId = item.id;
       calculate();
@@ -851,6 +1042,7 @@
     });
 
     setupSuggestions();
+    el("chooserSearch").addEventListener("input", renderChooserList);
     foods = getStoredFoods();
     loadLastValues();
     renderFoods();
