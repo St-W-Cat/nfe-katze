@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: plus-button-v14 -->
+  <!-- Version: ohne-berechnen-optionale-futterfelder-v15 -->
   <!-- Version: futterliste-abc-v9 -->
   <style>
     :root {
@@ -442,10 +442,6 @@
         <div><label for="feuchte">Feuchtigkeit (%)</label><input id="feuchte" inputmode="decimal" placeholder="z. B. 82"></div>
       </div>
 
-      <div class="actions">
-        <button class="primary" onclick="calculate()">Berechnen</button>
-      </div>
-
       <div id="error" class="error"></div>
     </section>
 
@@ -517,7 +513,6 @@
       </div>
       <div class="actions">
         <button id="saveFoodButton" class="primary" onclick="saveFood()">Futter speichern</button>
-        <button id="newFoodButton" class="secondary" onclick="newFood()" style="display:none">Neues Futter</button>
       </div>
       <div id="notice" class="notice"></div>
     </section>
@@ -779,7 +774,6 @@
         el("saveTitle").textContent = "Dieses Futter speichern";
         el("saveFoodButton").textContent = "Futter speichern";
         el("editingNote").classList.remove("visible");
-        el("newFoodButton").style.display = "none";
       }
       return true;
     }
@@ -801,7 +795,6 @@
       el("saveTitle").textContent = "Dieses Futter speichern";
       el("saveFoodButton").textContent = "Futter speichern";
       el("editingNote").classList.remove("visible");
-      el("newFoodButton").style.display = "none";
       el("saveCard").classList.remove("visible");
       renderFoods();
       if (message) showMessage("notice", message);
@@ -817,11 +810,6 @@
       const packaging = el("packaging").value.trim();
       const weight = el("weight").value.trim();
       const lifeAge = el("lifeAge").value.trim();
-
-      if (!brand || !sort || !packaging || !weight || !lifeAge) {
-        showMessage("notice", "Bitte Marke, Sorte, Verpackung, Gewicht und Lebensalter eintragen.");
-        return;
-      }
 
       const item = {
         id: editingId || String(Date.now()),
@@ -865,7 +853,6 @@
       el("saveTitle").textContent = "Futter bearbeiten";
       el("saveFoodButton").textContent = "Änderung speichern";
       el("editingNote").classList.add("visible");
-      el("newFoodButton").style.display = "inline-flex";
       renderFoods();
     }
 
@@ -886,7 +873,6 @@
       el("saveTitle").textContent = "Dieses Futter speichern";
       el("saveFoodButton").textContent = "Futter speichern";
       el("editingNote").classList.remove("visible");
-      el("newFoodButton").style.display = "none";
       renderFoods();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -916,7 +902,8 @@
       if (event) event.stopPropagation();
       const item = foods.find(f => f.id === id);
       if (!item) return;
-      if (!confirm("„" + item.brand + " – " + item.sort + "“ wirklich löschen?")) return;
+      const label = [item.brand || "Unbenanntes Futter", item.sort].filter(Boolean).join(" – ");
+      if (!confirm("„" + label + "“ wirklich löschen?")) return;
       setStoredFoods(foods.filter(f => f.id !== id));
       if (editingId === id) newFood();
     }
@@ -933,7 +920,7 @@
       top.className = "food-top " + item.result.ratingClass;
       const brandLine = document.createElement("div");
       brandLine.className = "food-brand";
-      brandLine.textContent = item.brand || "";
+      brandLine.textContent = item.brand || "Unbenanntes Futter";
 
       const sortLine = document.createElement("div");
       sortLine.className = "food-sort";
