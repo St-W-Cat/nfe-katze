@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: toast-nur-meldung-v35 -->
+  <!-- Version: scroll-zur-suche-v36 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -395,6 +395,10 @@
     .search-input {
       font-size: 17px;
       padding: 12px 14px;
+      scroll-margin-top: 16px;
+    }
+    #foodListSection {
+      scroll-margin-top: 12px;
     }
     .filter-row {
       display: flex;
@@ -958,11 +962,12 @@
       }
     }
 
-    function scrollToFoodList() {
-      const section = el("foodListSection");
-      if (!section) return;
-      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    function scrollToFoodListStart() {
+      const target = el("foodSearch") || el("foodListSection");
+      if (!target) return;
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+
 
     function showAuthMessage(msg) {
       showMessage("authNotice", msg);
@@ -1125,6 +1130,7 @@
       el("saveCard").classList.remove("visible");
       renderFoods();
       if (message) showMessage("syncNotice", message);
+      setTimeout(scrollToFoodListStart, 120);
     }
 
     function normalizeDuplicateValue(value) {
