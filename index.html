@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: toast-ohne-fokus-v34 -->
+  <!-- Version: toast-nur-meldung-v35 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -958,6 +958,11 @@
       }
     }
 
+    function scrollToFoodList() {
+      const section = el("foodListSection");
+      if (!section) return;
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
 
     function showAuthMessage(msg) {
       showMessage("authNotice", msg);
@@ -1224,6 +1229,7 @@
       el("saveFoodButton").textContent = "Futter speichern";
       el("saveAsNewButton").style.display = "none";
       renderFoods();
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function selectFood(id) {
@@ -1244,6 +1250,7 @@
       editingId = item.id;
       calculate();
       setEditMode(item);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     async function deleteFood(id, event) {
