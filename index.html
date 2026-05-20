@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: filter-reihenfolge-14px-v26 -->
+  <!-- Version: filterzahlen-vorne-download-icon-v28 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -349,6 +349,44 @@
     .notice { background: var(--soft); color: var(--accent-dark); }
     .save-card { display: none; }
     .save-card.visible { display: block; }
+    .food-list-head {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      min-height: 32px;
+    }
+    .food-list-head h2 {
+      margin: 0;
+      text-align: center;
+      width: 100%;
+    }
+    .download-icon-btn {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      padding: 0;
+      border-radius: 12px;
+      background: #efe7ff;
+      color: var(--accent-dark);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .download-icon-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
     .list-tools {
       display: grid;
       gap: 10px;
@@ -398,10 +436,6 @@
     .filter-high.active {
       background: var(--red);
       color: #ffffff;
-    }
-    .download-row {
-      display: flex;
-      justify-content: center;
     }
     .saved-list { display: grid; gap: 12px; }
     .empty {
@@ -678,18 +712,24 @@
     </section>
 
     <section id="foodListSection" class="card">
-      <h2>Futter-Liste</h2>
+      <div class="food-list-head">
+        <h2>Futter-Liste</h2>
+        <button type="button" class="download-icon-btn" aria-label="Excel herunterladen" onclick="downloadFoodList()">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v11"></path>
+            <path d="M7 10l5 5 5-5"></path>
+            <path d="M5 21h14"></path>
+          </svg>
+        </button>
+      </div>
 
       <div class="list-tools">
         <input id="foodSearch" class="search-input" autocomplete="off" placeholder="Futter suchen">
         <div class="filter-row">
-          <button type="button" class="filter-btn filter-good" data-filter="good" onclick="setFoodFilter('good')">super</button>
-          <button type="button" class="filter-btn filter-mid" data-filter="mid" onclick="setFoodFilter('mid')">geeignet</button>
-          <button type="button" class="filter-btn filter-high" data-filter="high" onclick="setFoodFilter('high')">vermeiden</button>
-          <button type="button" class="filter-btn active" data-filter="all" onclick="setFoodFilter('all')">alle</button>
-        </div>
-        <div class="download-row">
-          <button type="button" class="secondary small-action" onclick="downloadFoodList()">Liste herunterladen</button>
+          <button type="button" class="filter-btn filter-good" data-filter="good" data-label="super" onclick="setFoodFilter('good')">super</button>
+          <button type="button" class="filter-btn filter-mid" data-filter="mid" data-label="geeignet" onclick="setFoodFilter('mid')">geeignet</button>
+          <button type="button" class="filter-btn filter-high" data-filter="high" data-label="vermeiden" onclick="setFoodFilter('high')">vermeiden</button>
+          <button type="button" class="filter-btn active" data-filter="all" data-label="alle" onclick="setFoodFilter('all')">alle</button>
         </div>
       </div>
 
@@ -957,6 +997,7 @@
     }
 
     async function logoutAccount() {
+      if (!confirm("Wirklich abmelden?")) return;
       try {
         await auth.signOut();
       } catch (error) {
@@ -1067,6 +1108,23 @@
       setTimeout(scrollToFoodList, 80);
     }
 
+    function normalizeDuplicateValue(value) {
+      return (value || "").trim().toLocaleLowerCase("de");
+    }
+
+    function duplicateSignature(item) {
+      return ["brand", "sort", "packaging", "weight", "lifeAge"]
+        .map(field => normalizeDuplicateValue(item[field]))
+        .join("|");
+    }
+
+    function hasDuplicateFood(item) {
+      const sig = duplicateSignature(item);
+      const hasAnyLabel = sig.replaceAll("|", "").trim() !== "";
+      if (!hasAnyLabel) return false;
+      return foods.some(existing => existing.id !== item.id && duplicateSignature(existing) === sig);
+    }
+
     function saveFood() {
       saveFoodInternal(false);
     }
@@ -1112,10 +1170,14 @@
         }
       };
 
+      if (hasDuplicateFood(item)) {
+        if (!confirm("Dieses Futter gibt es schon. Trotzdem speichern?")) return;
+      }
+
       try {
         const collection = userFoodsCollection();
         await collection.doc(item.id).set(item);
-        clearAfterSave(forceNew ? "Neues Futter gespeichert." : (wasEditing ? "Änderung gespeichert." : "Futter gespeichert."));
+        clearAfterSave(forceNew ? "Neues Futter gespeichert & synchronisiert." : (wasEditing ? "Änderung gespeichert & synchronisiert." : "Futter gespeichert & synchronisiert."));
       } catch (error) {
         showMessage("notice", "Futter konnte nicht gespeichert werden: " + error.message);
       }
@@ -1234,39 +1296,59 @@
       return box;
     }
 
-    function getVisibleFoods() {
+    function matchesSearch(item, query) {
+      if (!query) return true;
+
+      const haystack = [
+        item.brand,
+        item.sort,
+        item.packaging,
+        item.weight,
+        item.lifeAge,
+        item.result?.ratingText,
+        item.result?.nfeDry != null ? fmt(item.result.nfeDry) : "",
+        item.result?.nfeFresh != null ? fmt(item.result.nfeFresh) : ""
+      ].filter(Boolean).join(" ").toLocaleLowerCase("de");
+
+      return haystack.includes(query);
+    }
+
+    function getCurrentSearchQuery() {
       const searchInput = el("foodSearch");
-      const q = searchInput ? searchInput.value.trim().toLocaleLowerCase("de") : "";
+      return searchInput ? searchInput.value.trim().toLocaleLowerCase("de") : "";
+    }
+
+    function getVisibleFoods() {
+      const q = getCurrentSearchQuery();
 
       return foods.filter(item => {
         const matchesFilter = activeFoodFilter === "all" || item.result?.ratingClass === activeFoodFilter;
-        if (!matchesFilter) return false;
+        return matchesFilter && matchesSearch(item, q);
+      });
+    }
 
-        if (!q) return true;
+    function updateFilterCounts() {
+      const q = getCurrentSearchQuery();
+      const searchableFoods = foods.filter(item => matchesSearch(item, q));
+      const counts = {
+        all: searchableFoods.length,
+        good: searchableFoods.filter(item => item.result?.ratingClass === "good").length,
+        mid: searchableFoods.filter(item => item.result?.ratingClass === "mid").length,
+        high: searchableFoods.filter(item => item.result?.ratingClass === "high").length
+      };
 
-        const haystack = [
-          item.brand,
-          item.sort,
-          item.packaging,
-          item.weight,
-          item.lifeAge,
-          item.result?.ratingText,
-          item.result?.nfeDry != null ? fmt(item.result.nfeDry) : "",
-          item.result?.nfeFresh != null ? fmt(item.result.nfeFresh) : ""
-        ].filter(Boolean).join(" ").toLocaleLowerCase("de");
-
-        return haystack.includes(q);
+      document.querySelectorAll(".filter-btn").forEach(btn => {
+        const filter = btn.dataset.filter;
+        const label = btn.dataset.label || btn.textContent;
+        btn.textContent = "(" + (counts[filter] ?? 0) + ") " + label;
       });
     }
 
     function sortFoods(list) {
       return list.slice().sort((a, b) => {
-        const fieldsToSort = ["brand", "sort", "packaging", "weight", "lifeAge"];
-        for (const field of fieldsToSort) {
-          const cmp = (a[field] || "").localeCompare(b[field] || "", "de", { sensitivity: "base", numeric: true });
-          if (cmp !== 0) return cmp;
-        }
-        return 0;
+        const brandCompare = (a.brand || "").localeCompare(b.brand || "", "de", { sensitivity: "base", numeric: true });
+        if (brandCompare !== 0) return brandCompare;
+        return (a.sort || "").localeCompare(b.sort || "", "de", { sensitivity: "base", numeric: true });
       });
     }
 
@@ -1279,6 +1361,7 @@
     }
 
     function renderFoods() {
+      updateFilterCounts();
       const list = el("savedList");
       list.innerHTML = "";
       if (!foods.length) {
@@ -1302,9 +1385,12 @@
       sortedFoods.forEach(item => list.appendChild(makeFoodNode(item)));
     }
 
-    function csvEscape(value) {
-      const text = value == null ? "" : String(value);
-      return '"' + text.replaceAll('"', '""') + '"';
+    function htmlEscape(value) {
+      return String(value == null ? "" : value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
     }
 
     function downloadFoodList() {
@@ -1335,7 +1421,9 @@
         "Bewertung"
       ];
 
-      const lines = [header.map(csvEscape).join(";")];
+      const tableRows = [
+        "<tr>" + header.map(cell => "<th>" + htmlEscape(cell) + "</th>").join("") + "</tr>"
+      ];
 
       rows.forEach(item => {
         const row = [
@@ -1353,15 +1441,30 @@
           item.result?.nfeDry != null ? item.result.nfeDry.toFixed(1).replace(".", ",") + " %" : "",
           item.result?.ratingText || ""
         ];
-        lines.push(row.map(csvEscape).join(";"));
+        tableRows.push("<tr>" + row.map(cell => "<td>" + htmlEscape(cell) + "</td>").join("") + "</tr>");
       });
 
-      const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      const excelHtml = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    table { border-collapse: collapse; font-family: Arial, sans-serif; }
+    th, td { border: 1px solid #999; padding: 6px 8px; }
+    th { background: #eee; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <table>${tableRows.join("")}</table>
+</body>
+</html>`;
+
+      const blob = new Blob(["\ufeff" + excelHtml], { type: "application/vnd.ms-excel;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const date = new Date().toISOString().slice(0, 10);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "nfe-katze-futterliste-" + date + ".csv";
+      link.download = "nfe-katze-futterliste-" + date + ".xls";
       document.body.appendChild(link);
       link.click();
       link.remove();

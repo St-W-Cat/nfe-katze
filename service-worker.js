@@ -1,4 +1,4 @@
-const CACHE_NAME = "nfe-katze-v26";
+const CACHE_NAME = "nfe-katze-v28";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
