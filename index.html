@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: scroll-zur-suche-v36 -->
+  <!-- Version: feinschliff-kompakt-v37 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -38,9 +38,9 @@
       background: var(--card);
       border: 1px solid var(--line);
       border-radius: 24px;
-      padding: 22px;
+      padding: 18px;
       box-shadow: 0 10px 30px rgba(20, 80, 160, .08);
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .title {
       display: flex;
@@ -107,36 +107,36 @@
       line-height: 1.4;
       resize: vertical;
     }
-    .save-card input { font-size: 18px; }
+    .save-card input { font-size: 16px; }
     .suggest-wrap {
       display: grid;
-      grid-template-columns: 1fr 40px 44px;
-      gap: 8px;
+      grid-template-columns: 1fr 36px 40px;
+      gap: 7px;
       align-items: center;
     }
     .suggest-btn,
     .clear-field-btn {
-      height: 44px;
+      height: 40px;
       padding: 0;
-      border-radius: 14px;
+      border-radius: 12px;
       line-height: 1;
       display: inline-flex;
       align-items: center;
       justify-content: center;
     }
     .suggest-btn {
-      width: 44px;
-      min-width: 44px;
-      background: #efe7ff;
-      color: var(--accent-dark);
-      font-size: 26px;
-    }
-    .clear-field-btn {
       width: 40px;
       min-width: 40px;
+      background: #efe7ff;
+      color: var(--accent-dark);
+      font-size: 24px;
+    }
+    .clear-field-btn {
+      width: 36px;
+      min-width: 36px;
       background: #eef2f7;
       color: var(--muted);
-      font-size: 24px;
+      font-size: 22px;
     }
     .clear-field-btn:active {
       background: #ffe3e3;
@@ -322,8 +322,8 @@
     .rating.high { display: flex; color: var(--red); }
 
     .paw {
-      width: 30px;
-      height: 30px;
+      width: 26px;
+      height: 26px;
       display: block;
       flex: 0 0 auto;
       overflow: visible;
@@ -392,10 +392,30 @@
       gap: 10px;
       margin: -2px 0 14px;
     }
+    .search-wrap {
+      display: grid;
+      grid-template-columns: 1fr 38px;
+      gap: 8px;
+      align-items: center;
+    }
     .search-input {
-      font-size: 17px;
-      padding: 12px 14px;
+      font-size: 16px;
+      padding: 11px 12px;
       scroll-margin-top: 16px;
+    }
+    .search-clear-btn {
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      padding: 0;
+      border-radius: 12px;
+      background: #eef2f7;
+      color: var(--muted);
+      font-size: 22px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     #foodListSection {
       scroll-margin-top: 12px;
@@ -540,6 +560,13 @@
       font-size: 12px;
       line-height: 1.4;
       margin-top: 14px;
+    }
+    .version-note {
+      text-align: center;
+      color: #9aa6b8;
+      font-size: 11px;
+      margin-top: 6px;
+      user-select: none;
     }
     .auth-card input {
       font-size: 18px;
@@ -748,7 +775,10 @@
       </div>
 
       <div class="list-tools">
-        <input id="foodSearch" class="search-input" autocomplete="off" placeholder="Futter suchen">
+        <div class="search-wrap">
+          <input id="foodSearch" class="search-input" autocomplete="off" placeholder="Futter suchen">
+          <button type="button" class="search-clear-btn" aria-label="Suche löschen" onclick="clearFoodSearch()">×</button>
+        </div>
         <div class="filter-row">
           <button type="button" class="filter-btn filter-good" data-filter="good" data-label="super" onclick="setFoodFilter('good')">super</button>
           <button type="button" class="filter-btn filter-mid" data-filter="mid" data-label="geeignet" onclick="setFoodFilter('mid')">geeignet</button>
@@ -761,6 +791,7 @@
     </section>
 
     </div>
+    <div class="version-note">v37</div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -871,6 +902,7 @@
     let currentResult = null;
     let editingId = null;
     let activeFoodFilter = "all";
+    let foodsLoading = true;
 
     const pawSvg = '<svg class="paw" viewBox="0 0 120 120" aria-hidden="true"><ellipse class="shape" cx="24" cy="50" rx="12" ry="19" transform="rotate(-31 24 50)"/><ellipse class="shape" cx="48" cy="27" rx="13" ry="22" transform="rotate(-9 48 27)"/><ellipse class="shape" cx="72" cy="27" rx="13" ry="22" transform="rotate(9 72 27)"/><ellipse class="shape" cx="96" cy="50" rx="12" ry="19" transform="rotate(31 96 50)"/><path class="shape" d="M34 102 C20 94 22 77 36 69 C43 65 42 55 51 50 C57 46 65 46 71 50 C80 55 79 65 86 69 C100 77 102 94 86 102 C77 107 70 101 62 101 C53 101 45 108 34 102 Z"/></svg>';
 
@@ -905,10 +937,15 @@
       const collection = userFoodsCollection();
       if (!collection) return;
 
+      foodsLoading = true;
+      renderFoods();
+
       unsubscribeFoods = collection.onSnapshot(snapshot => {
+        foodsLoading = false;
         foods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderFoods();
       }, error => {
+        foodsLoading = false;
         showMessage("syncNotice", "Futter-Liste konnte nicht geladen werden: " + error.message);
       });
     }
@@ -1267,8 +1304,7 @@
       }
       const item = foods.find(f => f.id === id);
       if (!item) return;
-      const label = [item.brand || "Unbenanntes Futter", item.sort].filter(Boolean).join(" – ");
-      if (!confirm("„" + label + "“ wirklich löschen?")) return;
+      if (!confirm("Eintrag löschen?")) return;
 
       try {
         await userFoodsCollection().doc(id).delete();
@@ -1385,10 +1421,26 @@
       renderFoods();
     }
 
+    function clearFoodSearch() {
+      const input = el("foodSearch");
+      if (!input) return;
+      input.value = "";
+      setFoodFilter("all");
+      renderFoods();
+    }
+
     function renderFoods() {
       updateFilterCounts();
       const list = el("savedList");
       list.innerHTML = "";
+      if (foodsLoading) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Futter-Liste wird geladen …";
+        list.appendChild(empty);
+        return;
+      }
+
       if (!foods.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
@@ -1656,7 +1708,11 @@
 
     setupSuggestions();
     el("chooserSearch").addEventListener("input", renderChooserList);
-    el("foodSearch").addEventListener("input", renderFoods);
+    el("foodSearch").addEventListener("input", () => {
+      if (activeFoodFilter !== "all") setFoodFilter("all");
+      else renderFoods();
+    });
+    foodsLoading = true;
     renderFoods();
     resetTransientFieldsOnStart();
 
@@ -1676,6 +1732,7 @@
         subscribeToFoods();
         resetTransientFieldsOnStart();
       } else {
+        foodsLoading = false;
         foods = [];
         renderFoods();
         resetTransientFieldsOnStart();
