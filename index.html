@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: suche-filter-download-v24 -->
+  <!-- Version: filter-farben-v25 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -371,8 +371,32 @@
       background: #eef2f7;
       color: var(--muted);
     }
-    .filter-btn.active {
+    .filter-btn[data-filter="all"].active {
       background: var(--accent);
+      color: #ffffff;
+    }
+    .filter-good {
+      background: #e3f6ec;
+      color: var(--green);
+    }
+    .filter-mid {
+      background: #fff0dc;
+      color: var(--orange);
+    }
+    .filter-high {
+      background: #ffe3e3;
+      color: var(--red);
+    }
+    .filter-good.active {
+      background: var(--green);
+      color: #ffffff;
+    }
+    .filter-mid.active {
+      background: var(--orange);
+      color: #ffffff;
+    }
+    .filter-high.active {
+      background: var(--red);
       color: #ffffff;
     }
     .download-row {
@@ -660,9 +684,9 @@
         <input id="foodSearch" class="search-input" autocomplete="off" placeholder="Futter suchen">
         <div class="filter-row">
           <button type="button" class="filter-btn active" data-filter="all" onclick="setFoodFilter('all')">alle</button>
-          <button type="button" class="filter-btn" data-filter="good" onclick="setFoodFilter('good')">super</button>
-          <button type="button" class="filter-btn" data-filter="mid" onclick="setFoodFilter('mid')">geeignet</button>
-          <button type="button" class="filter-btn" data-filter="high" onclick="setFoodFilter('high')">vermeiden</button>
+          <button type="button" class="filter-btn filter-good" data-filter="good" onclick="setFoodFilter('good')">super</button>
+          <button type="button" class="filter-btn filter-mid" data-filter="mid" onclick="setFoodFilter('mid')">geeignet</button>
+          <button type="button" class="filter-btn filter-high" data-filter="high" onclick="setFoodFilter('high')">vermeiden</button>
         </div>
         <div class="download-row">
           <button type="button" class="secondary small-action" onclick="downloadFoodList()">Liste herunterladen</button>
