@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: firebase-sync-v21 -->
+  <!-- Version: firebase-sync-ohne-lokal-v22 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -499,7 +499,6 @@
     <section id="userCard" class="card" style="display:none">
       <div class="auth-status">
         <span>Angemeldet als <span id="userEmail" class="auth-email"></span></span>
-        <button class="secondary" onclick="migrateLocalFoods()">lokale Daten übernehmen</button>
         <button class="danger" onclick="logoutAccount()">Abmelden</button>
       </div>
       <div id="syncNotice" class="notice"></div>
@@ -887,36 +886,6 @@
         await auth.signOut();
       } catch (error) {
         showMessage("syncNotice", "Abmelden fehlgeschlagen: " + error.message);
-      }
-    }
-
-    async function migrateLocalFoods() {
-      if (!currentUser) {
-        showMessage("syncNotice", "Bitte zuerst einloggen.");
-        return;
-      }
-
-      const localFoods = getStoredFoods().filter(item => item && item.values && item.result);
-      if (!localFoods.length) {
-        showMessage("syncNotice", "Keine lokalen Daten zum Übernehmen gefunden.");
-        return;
-      }
-
-      if (!confirm(localFoods.length + " lokale Einträge in die Cloud übernehmen?")) return;
-
-      try {
-        const batch = db.batch();
-        const collection = userFoodsCollection();
-
-        localFoods.forEach((item, index) => {
-          const id = item.id || String(Date.now() + index);
-          batch.set(collection.doc(id), { ...item, id });
-        });
-
-        await batch.commit();
-        showMessage("syncNotice", "Lokale Daten wurden übernommen.");
-      } catch (error) {
-        showMessage("syncNotice", "Lokale Daten konnten nicht übernommen werden: " + error.message);
       }
     }
 
