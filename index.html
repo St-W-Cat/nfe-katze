@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: filter-farben-v25 -->
+  <!-- Version: filter-reihenfolge-14px-v26 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -438,11 +438,11 @@
     }
     .food-brand {
       font-weight: 900;
-      font-size: 15px;
+      font-size: 14px;
     }
     .food-sort {
       font-weight: 800;
-      font-size: 15px;
+      font-size: 14px;
       margin-top: 2px;
     }
     .food-top.good { color: var(--green); }
@@ -683,10 +683,10 @@
       <div class="list-tools">
         <input id="foodSearch" class="search-input" autocomplete="off" placeholder="Futter suchen">
         <div class="filter-row">
-          <button type="button" class="filter-btn active" data-filter="all" onclick="setFoodFilter('all')">alle</button>
           <button type="button" class="filter-btn filter-good" data-filter="good" onclick="setFoodFilter('good')">super</button>
           <button type="button" class="filter-btn filter-mid" data-filter="mid" onclick="setFoodFilter('mid')">geeignet</button>
           <button type="button" class="filter-btn filter-high" data-filter="high" onclick="setFoodFilter('high')">vermeiden</button>
+          <button type="button" class="filter-btn active" data-filter="all" onclick="setFoodFilter('all')">alle</button>
         </div>
         <div class="download-row">
           <button type="button" class="secondary small-action" onclick="downloadFoodList()">Liste herunterladen</button>
