@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: login-klein-v23 -->
+  <!-- Version: suche-filter-download-v24 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -249,6 +249,12 @@
     .save-card .primary {
       min-width: 150px;
     }
+    .small-action {
+      font-size: 13px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      min-width: 0;
+    }
     .primary:active { background: var(--accent-dark); }
     .secondary {
       background: #efe7ff;
@@ -343,6 +349,36 @@
     .notice { background: var(--soft); color: var(--accent-dark); }
     .save-card { display: none; }
     .save-card.visible { display: block; }
+    .list-tools {
+      display: grid;
+      gap: 10px;
+      margin: -2px 0 14px;
+    }
+    .search-input {
+      font-size: 17px;
+      padding: 12px 14px;
+    }
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+    .filter-btn {
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      background: #eef2f7;
+      color: var(--muted);
+    }
+    .filter-btn.active {
+      background: var(--accent);
+      color: #ffffff;
+    }
+    .download-row {
+      display: flex;
+      justify-content: center;
+    }
     .saved-list { display: grid; gap: 12px; }
     .empty {
       text-align: center;
@@ -378,11 +414,11 @@
     }
     .food-brand {
       font-weight: 900;
-      font-size: 16px;
+      font-size: 15px;
     }
     .food-sort {
       font-weight: 800;
-      font-size: 16px;
+      font-size: 15px;
       margin-top: 2px;
     }
     .food-top.good { color: var(--green); }
@@ -508,6 +544,7 @@
       <div class="actions">
         <button class="primary" onclick="loginAccount()">Einloggen</button>
         <button class="secondary" onclick="registerAccount()">Konto erstellen</button>
+        <button class="secondary small-action" onclick="resetPassword()">Passwort vergessen</button>
       </div>
       <div id="authNotice" class="notice"></div>
       <div class="sync-note">Melde dich auf allen Geräten mit demselben Konto an, damit die Futter-Liste synchronisiert wird.</div>
@@ -618,41 +655,23 @@
 
     <section id="foodListSection" class="card">
       <h2>Futter-Liste</h2>
+
+      <div class="list-tools">
+        <input id="foodSearch" class="search-input" autocomplete="off" placeholder="Futter suchen">
+        <div class="filter-row">
+          <button type="button" class="filter-btn active" data-filter="all" onclick="setFoodFilter('all')">alle</button>
+          <button type="button" class="filter-btn" data-filter="good" onclick="setFoodFilter('good')">super</button>
+          <button type="button" class="filter-btn" data-filter="mid" onclick="setFoodFilter('mid')">geeignet</button>
+          <button type="button" class="filter-btn" data-filter="high" onclick="setFoodFilter('high')">vermeiden</button>
+        </div>
+        <div class="download-row">
+          <button type="button" class="secondary small-action" onclick="downloadFoodList()">Liste herunterladen</button>
+        </div>
+      </div>
+
       <div id="savedList" class="saved-list"></div>
     </section>
 
-    <div class="backup-mini">
-      <button id="backupToggle" class="secondary backup-toggle" onclick="toggleBackup()">Backup</button>
-    </div>
-
-    <section id="backupContent" class="card backup-content">
-      <h2>Backup</h2>
-      <div class="hint">Nur öffnen, wenn du Daten sichern oder wiederherstellen möchtest.</div>
-
-      <div class="actions">
-        <button class="secondary" onclick="showExport()">Daten exportieren</button>
-        <button class="secondary" onclick="showImport()">Daten importieren</button>
-      </div>
-
-      <div id="exportBox" style="display:none; margin-top:14px">
-        <label for="exportData">Backup-Daten</label>
-        <textarea id="exportData" readonly></textarea>
-        <div class="actions">
-          <button class="secondary" onclick="copyExport()">Kopieren</button>
-        </div>
-      </div>
-
-      <div id="importBox" style="display:none; margin-top:14px">
-        <label for="importData">Backup hier einfügen</label>
-        <textarea id="importData" placeholder="Backup-Daten hier einfügen"></textarea>
-        <div class="actions">
-          <button class="primary" onclick="importData()">Importieren</button>
-        </div>
-      </div>
-
-      <div id="backupNotice" class="notice"></div>
-      <div class="footer-note">Die Daten werden lokal in dieser Web-App gespeichert.</div>
-    </section>
     </div>
   </main>
 
@@ -763,6 +782,7 @@
     let unsubscribeFoods = null;
     let currentResult = null;
     let editingId = null;
+    let activeFoodFilter = "all";
 
     const pawSvg = '<svg class="paw" viewBox="0 0 120 120" aria-hidden="true"><ellipse class="shape" cx="24" cy="50" rx="12" ry="19" transform="rotate(-31 24 50)"/><ellipse class="shape" cx="48" cy="27" rx="13" ry="22" transform="rotate(-9 48 27)"/><ellipse class="shape" cx="72" cy="27" rx="13" ry="22" transform="rotate(9 72 27)"/><ellipse class="shape" cx="96" cy="50" rx="12" ry="19" transform="rotate(31 96 50)"/><path class="shape" d="M34 102 C20 94 22 77 36 69 C43 65 42 55 51 50 C57 46 65 46 71 50 C80 55 79 65 86 69 C100 77 102 94 86 102 C77 107 70 101 62 101 C53 101 45 108 34 102 Z"/></svg>';
 
@@ -895,6 +915,20 @@
         await auth.signInWithEmailAndPassword(email, password);
       } catch (error) {
         showAuthMessage("Login fehlgeschlagen: " + error.message);
+      }
+    }
+
+    async function resetPassword() {
+      const email = el("authEmail").value.trim();
+      if (!email) {
+        showAuthMessage("Bitte zuerst deine E-Mail-Adresse eintragen.");
+        return;
+      }
+      try {
+        await auth.sendPasswordResetEmail(email);
+        showAuthMessage("E-Mail zum Zurücksetzen wurde gesendet.");
+      } catch (error) {
+        showAuthMessage("Zurücksetzen fehlgeschlagen: " + error.message);
       }
     }
 
@@ -1176,6 +1210,50 @@
       return box;
     }
 
+    function getVisibleFoods() {
+      const searchInput = el("foodSearch");
+      const q = searchInput ? searchInput.value.trim().toLocaleLowerCase("de") : "";
+
+      return foods.filter(item => {
+        const matchesFilter = activeFoodFilter === "all" || item.result?.ratingClass === activeFoodFilter;
+        if (!matchesFilter) return false;
+
+        if (!q) return true;
+
+        const haystack = [
+          item.brand,
+          item.sort,
+          item.packaging,
+          item.weight,
+          item.lifeAge,
+          item.result?.ratingText,
+          item.result?.nfeDry != null ? fmt(item.result.nfeDry) : "",
+          item.result?.nfeFresh != null ? fmt(item.result.nfeFresh) : ""
+        ].filter(Boolean).join(" ").toLocaleLowerCase("de");
+
+        return haystack.includes(q);
+      });
+    }
+
+    function sortFoods(list) {
+      return list.slice().sort((a, b) => {
+        const fieldsToSort = ["brand", "sort", "packaging", "weight", "lifeAge"];
+        for (const field of fieldsToSort) {
+          const cmp = (a[field] || "").localeCompare(b[field] || "", "de", { sensitivity: "base", numeric: true });
+          if (cmp !== 0) return cmp;
+        }
+        return 0;
+      });
+    }
+
+    function setFoodFilter(filter) {
+      activeFoodFilter = filter;
+      document.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.filter === filter);
+      });
+      renderFoods();
+    }
+
     function renderFoods() {
       const list = el("savedList");
       list.innerHTML = "";
@@ -1187,79 +1265,83 @@
         return;
       }
 
-      const sortedFoods = foods.slice().sort((a, b) => {
-        const fieldsToSort = ["brand", "sort", "packaging", "weight", "lifeAge"];
-        for (const field of fieldsToSort) {
-          const cmp = (a[field] || "").localeCompare(b[field] || "", "de", { sensitivity: "base", numeric: true });
-          if (cmp !== 0) return cmp;
-        }
-        return 0;
-      });
+      const sortedFoods = sortFoods(getVisibleFoods());
+
+      if (!sortedFoods.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Kein passendes Futter gefunden.";
+        list.appendChild(empty);
+        return;
+      }
 
       sortedFoods.forEach(item => list.appendChild(makeFoodNode(item)));
     }
 
-    function toggleBackup() {
-      const content = el("backupContent");
-      const btn = el("backupToggle");
-      const open = content.classList.toggle("visible");
-      btn.textContent = open ? "Backup ausblenden" : "Backup";
+    function csvEscape(value) {
+      const text = value == null ? "" : String(value);
+      return '"' + text.replaceAll('"', '""') + '"';
     }
 
-    function showExport() {
-      el("importBox").style.display = "none";
-      el("exportBox").style.display = "block";
-      el("exportData").value = JSON.stringify(foods, null, 2);
-    }
-
-    function showImport() {
-      el("exportBox").style.display = "none";
-      el("importBox").style.display = "block";
-    }
-
-    async function copyExport() {
-      const text = el("exportData").value;
-      try {
-        await navigator.clipboard.writeText(text);
-        showMessage("backupNotice", "Backup wurde kopiert.");
-      } catch (e) {
-        el("exportData").select();
-        document.execCommand("copy");
-        showMessage("backupNotice", "Backup wurde kopiert.");
-      }
-    }
-
-    async function importData() {
-      if (!currentUser) {
-        showMessage("backupNotice", "Bitte zuerst einloggen.");
+    function downloadFoodList() {
+      if (!foods.length) {
+        alert("Es ist noch kein Futter gespeichert.");
         return;
       }
 
-      const raw = el("importData").value.trim();
-      if (!raw) {
-        showMessage("backupNotice", "Bitte Backup-Daten einfügen.");
+      const rows = sortFoods(getVisibleFoods());
+      if (!rows.length) {
+        alert("Für die aktuelle Suche/den aktuellen Filter gibt es keine Einträge.");
         return;
       }
 
-      try {
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) throw new Error("Kein Array");
+      const header = [
+        "Marke",
+        "Sorte",
+        "Verpackung",
+        "Gewicht",
+        "Lebensalter",
+        "Rohprotein",
+        "Rohfett",
+        "Rohfaser",
+        "Rohasche",
+        "Feuchtigkeit",
+        "NfE",
+        "NfE TM",
+        "Bewertung"
+      ];
 
-        const cleaned = parsed.filter(item => item && item.values && item.result);
-        const batch = db.batch();
-        const collection = userFoodsCollection();
+      const lines = [header.map(csvEscape).join(";")];
 
-        cleaned.forEach((item, index) => {
-          const id = item.id || String(Date.now() + index);
-          batch.set(collection.doc(id), { ...item, id });
-        });
+      rows.forEach(item => {
+        const row = [
+          item.brand || "",
+          item.sort || "",
+          item.packaging || "",
+          item.weight || "",
+          item.lifeAge || "",
+          item.values?.protein ?? "",
+          item.values?.fett ?? "",
+          item.values?.faser ?? "",
+          item.values?.asche ?? "",
+          item.values?.feuchte ?? "",
+          item.result?.nfeFresh != null ? item.result.nfeFresh.toFixed(1).replace(".", ",") + " %" : "",
+          item.result?.nfeDry != null ? item.result.nfeDry.toFixed(1).replace(".", ",") + " %" : "",
+          item.result?.ratingText || ""
+        ];
+        lines.push(row.map(csvEscape).join(";"));
+      });
 
-        await batch.commit();
-        el("importData").value = "";
-        showMessage("backupNotice", "Backup wurde importiert.");
-      } catch (e) {
-        showMessage("backupNotice", "Backup konnte nicht gelesen/importiert werden: " + e.message);
-      }
+      const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const date = new Date().toISOString().slice(0, 10);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "nfe-katze-futterliste-" + date + ".csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
     }
 
     fields.forEach(id => {
@@ -1270,6 +1352,7 @@
 
     setupSuggestions();
     el("chooserSearch").addEventListener("input", renderChooserList);
+    el("foodSearch").addEventListener("input", renderFoods);
     renderFoods();
     resetTransientFieldsOnStart();
 
