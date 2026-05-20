@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: toast-ohne-scroll-v32 -->
+  <!-- Version: toast-mitte-v33 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -581,11 +581,11 @@
       display: none;
       position: fixed;
       left: 50%;
-      bottom: calc(18px + env(safe-area-inset-bottom));
-      transform: translateX(-50%);
+      top: 50%;
+      transform: translate(-50%, -50%);
       z-index: 2000;
-      width: calc(100% - 32px);
-      max-width: 420px;
+      width: calc(100% - 48px);
+      max-width: 360px;
       text-align: center;
       font-size: 14px;
       font-weight: 900;
@@ -593,8 +593,9 @@
       background: #e2f3ff;
       border: 1px solid #b8ddf5;
       border-radius: 999px;
-      padding: 12px 16px;
-      box-shadow: 0 14px 34px rgba(0, 0, 0, .18);
+      padding: 13px 18px;
+      box-shadow: 0 18px 44px rgba(0, 0, 0, .22);
+      pointer-events: none;
     }
     .app-content {
       display: none;
@@ -1105,6 +1106,9 @@
     }
 
     function clearAfterSave(message) {
+      if (document.activeElement && typeof document.activeElement.blur === "function") {
+        document.activeElement.blur();
+      }
       editingId = null;
       fields.forEach(id => el(id).value = "");
       el("brand").value = "";
@@ -1228,7 +1232,6 @@
       el("saveFoodButton").textContent = "Futter speichern";
       el("saveAsNewButton").style.display = "none";
       renderFoods();
-      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function selectFood(id) {
@@ -1249,7 +1252,6 @@
       editingId = item.id;
       calculate();
       setEditMode(item);
-      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     async function deleteFood(id, event) {
