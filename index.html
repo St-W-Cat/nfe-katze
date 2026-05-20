@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: scroll-zur-futterliste-v19 -->
+  <!-- Version: start-leer-v20 -->
   <!-- Version: futterliste-abc-v9 -->
   <style>
     :root {
@@ -455,11 +455,11 @@
       </div>
 
       <div class="grid">
-        <div><label for="protein">Rohprotein (%)</label><input id="protein" inputmode="decimal" placeholder="z. B. 9,5"></div>
-        <div><label for="fett">Rohfett (%)</label><input id="fett" inputmode="decimal" placeholder="z. B. 5"></div>
-        <div><label for="faser">Rohfaser (%)</label><input id="faser" inputmode="decimal" placeholder="z. B. 0,5"></div>
-        <div><label for="asche">Rohasche (%)</label><input id="asche" inputmode="decimal" placeholder="z. B. 2"></div>
-        <div><label for="feuchte">Feuchtigkeit (%)</label><input id="feuchte" inputmode="decimal" placeholder="z. B. 82"></div>
+        <div><label for="protein">Rohprotein (%)</label><input id="protein" inputmode="decimal" autocomplete="off" placeholder="z. B. 9,5"></div>
+        <div><label for="fett">Rohfett (%)</label><input id="fett" inputmode="decimal" autocomplete="off" placeholder="z. B. 5"></div>
+        <div><label for="faser">Rohfaser (%)</label><input id="faser" inputmode="decimal" autocomplete="off" placeholder="z. B. 0,5"></div>
+        <div><label for="asche">Rohasche (%)</label><input id="asche" inputmode="decimal" autocomplete="off" placeholder="z. B. 2"></div>
+        <div><label for="feuchte">Feuchtigkeit (%)</label><input id="feuchte" inputmode="decimal" autocomplete="off" placeholder="z. B. 82"></div>
       </div>
 
       <div id="error" class="error"></div>
@@ -483,7 +483,7 @@
         <div>
           <label for="brand">Marke</label>
           <div class="suggest-wrap">
-            <input id="brand" placeholder="z. B. MjAMjAM">
+            <input id="brand" autocomplete="off" placeholder="z. B. MjAMjAM">
             <button type="button" class="clear-field-btn" aria-label="Marke löschen" onclick="clearField('brand')">×</button>
             <button type="button" class="suggest-btn" aria-label="Marke auswählen" onclick="openChooser('brand','brandOptions','Marke')">+</button>
           </div>
@@ -491,7 +491,7 @@
         <div>
           <label for="sort">Sorte</label>
           <div class="suggest-wrap">
-            <input id="sort" placeholder="z. B. Huhn">
+            <input id="sort" autocomplete="off" placeholder="z. B. Huhn">
             <button type="button" class="clear-field-btn" aria-label="Sorte löschen" onclick="clearField('sort')">×</button>
             <button type="button" class="suggest-btn" aria-label="Sorte auswählen" onclick="openChooser('sort','sortOptions','Sorte')">+</button>
           </div>
@@ -499,7 +499,7 @@
         <div>
           <label for="packaging">Verpackung</label>
           <div class="suggest-wrap">
-            <input id="packaging" placeholder="z. B. Dose">
+            <input id="packaging" autocomplete="off" placeholder="z. B. Dose">
             <button type="button" class="clear-field-btn" aria-label="Verpackung löschen" onclick="clearField('packaging')">×</button>
             <button type="button" class="suggest-btn" aria-label="Verpackung auswählen" onclick="openChooser('packaging','packagingOptions','Verpackung')">+</button>
           </div>
@@ -507,7 +507,7 @@
         <div>
           <label for="weight">Gewicht</label>
           <div class="suggest-wrap">
-            <input id="weight" placeholder="z. B. 400 g">
+            <input id="weight" autocomplete="off" placeholder="z. B. 400 g">
             <button type="button" class="clear-field-btn" aria-label="Gewicht löschen" onclick="clearField('weight')">×</button>
             <button type="button" class="suggest-btn" aria-label="Gewicht auswählen" onclick="openChooser('weight','weightOptions','Gewicht')">+</button>
           </div>
@@ -515,7 +515,7 @@
         <div>
           <label for="lifeAge">Lebensalter</label>
           <div class="suggest-wrap">
-            <input id="lifeAge" placeholder="z. B. Adult">
+            <input id="lifeAge" autocomplete="off" placeholder="z. B. Adult">
             <button type="button" class="clear-field-btn" aria-label="Lebensalter löschen" onclick="clearField('lifeAge')">×</button>
             <button type="button" class="suggest-btn" aria-label="Lebensalter auswählen" onclick="openChooser('lifeAge','lifeAgeOptions','Lebensalter')">+</button>
           </div>
@@ -690,9 +690,7 @@
     }
 
     function saveLastValues() {
-      const last = {};
-      fields.forEach(id => last[id] = el(id).value);
-      try { localStorage.setItem(lastValuesKey, JSON.stringify(last)); } catch (e) {}
+      // Rechner-Werte sollen beim nächsten Öffnen leer sein.
     }
 
     function clearLastValues() {
@@ -700,12 +698,22 @@
     }
 
     function loadLastValues() {
-      try {
-        const data = localStorage.getItem(lastValuesKey);
-        if (!data) return;
-        const last = JSON.parse(data);
-        fields.forEach(id => { if (last[id] !== undefined) el(id).value = last[id]; });
-      } catch (e) {}
+      clearLastValues();
+    }
+
+    function resetTransientFieldsOnStart() {
+      fields.forEach(id => el(id).value = "");
+      ["brand", "sort", "packaging", "weight", "lifeAge"].forEach(id => {
+        const input = el(id);
+        if (input) input.value = "";
+      });
+      el("nfeFresh").textContent = "–";
+      el("nfeDry").textContent = "–";
+      el("nfeDry").classList.remove("dry-good", "dry-mid", "dry-high");
+      setRating("", "");
+      currentResult = null;
+      clearLastValues();
+      el("saveCard").classList.remove("visible");
     }
 
     function parseNumber(id) {
@@ -1077,9 +1085,8 @@
     setupSuggestions();
     el("chooserSearch").addEventListener("input", renderChooserList);
     foods = getStoredFoods();
-    loadLastValues();
     renderFoods();
-    if (fields.every(id => el(id).value.trim() !== "")) calculate();
+    resetTransientFieldsOnStart();
 
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
