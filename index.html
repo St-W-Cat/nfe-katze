@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: filterzahlen-vorne-download-icon-v28 -->
+  <!-- Version: xlsx-notice-fix-v29 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -577,6 +577,18 @@
       line-height: 1.45;
       margin-top: 10px;
     }
+    .global-notice {
+      display: none;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--green);
+      background: #e3f6ec;
+      border: 1px solid #bfe9d1;
+      border-radius: 16px;
+      padding: 10px 12px;
+      margin: 0 0 14px;
+    }
     .app-content {
       display: none;
     }
@@ -613,8 +625,8 @@
         <span class="auth-label">Angemeldet als <span id="userEmail" class="auth-email"></span></span>
         <button class="logout-mini" onclick="logoutAccount()">Abmelden</button>
       </div>
-      <div id="syncNotice" class="notice"></div>
     </section>
+    <div id="syncNotice" class="global-notice"></div>
 
     <div id="appContent" class="app-content">
     <section class="card">
@@ -1104,7 +1116,7 @@
       el("saveAsNewButton").style.display = "none";
       el("saveCard").classList.remove("visible");
       renderFoods();
-      if (message) showMessage("notice", message);
+      if (message) showMessage("syncNotice", message);
       setTimeout(scrollToFoodList, 80);
     }
 
@@ -1385,12 +1397,184 @@
       sortedFoods.forEach(item => list.appendChild(makeFoodNode(item)));
     }
 
-    function htmlEscape(value) {
+    function xmlEscape(value) {
       return String(value == null ? "" : value)
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;");
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&apos;");
+    }
+
+    function columnName(index) {
+      let name = "";
+      let n = index + 1;
+      while (n > 0) {
+        const rem = (n - 1) % 26;
+        name = String.fromCharCode(65 + rem) + name;
+        n = Math.floor((n - 1) / 26);
+      }
+      return name;
+    }
+
+    function crc32(str) {
+      const table = crc32.table || (crc32.table = (() => {
+        const t = [];
+        for (let i = 0; i < 256; i++) {
+          let c = i;
+          for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+          t[i] = c >>> 0;
+        }
+        return t;
+      })());
+
+      let crc = 0 ^ -1;
+      for (let i = 0; i < str.length; i++) {
+        crc = (crc >>> 8) ^ table[(crc ^ str.charCodeAt(i)) & 0xff];
+      }
+      return (crc ^ -1) >>> 0;
+    }
+
+    function textToBytes(text) {
+      return new TextEncoder().encode(text);
+    }
+
+    function uint16(value) {
+      return [value & 255, (value >>> 8) & 255];
+    }
+
+    function uint32(value) {
+      return [value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255];
+    }
+
+    function makeZip(files) {
+      const localParts = [];
+      const centralParts = [];
+      let offset = 0;
+
+      files.forEach(file => {
+        const nameBytes = textToBytes(file.name);
+        const dataBytes = textToBytes(file.content);
+        const crc = crc32(file.content);
+        const size = dataBytes.length;
+
+        const localHeader = new Uint8Array([
+          0x50, 0x4b, 0x03, 0x04,
+          ...uint16(20),
+          ...uint16(0),
+          ...uint16(0),
+          ...uint16(0),
+          ...uint16(0),
+          ...uint32(crc),
+          ...uint32(size),
+          ...uint32(size),
+          ...uint16(nameBytes.length),
+          ...uint16(0)
+        ]);
+
+        localParts.push(localHeader, nameBytes, dataBytes);
+
+        const centralHeader = new Uint8Array([
+          0x50, 0x4b, 0x01, 0x02,
+          ...uint16(20),
+          ...uint16(20),
+          ...uint16(0),
+          ...uint16(0),
+          ...uint16(0),
+          ...uint16(0),
+          ...uint32(crc),
+          ...uint32(size),
+          ...uint32(size),
+          ...uint16(nameBytes.length),
+          ...uint16(0),
+          ...uint16(0),
+          ...uint16(0),
+          ...uint16(0),
+          ...uint32(0),
+          ...uint32(offset)
+        ]);
+
+        centralParts.push(centralHeader, nameBytes);
+        offset += localHeader.length + nameBytes.length + dataBytes.length;
+      });
+
+      const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+      const centralOffset = offset;
+
+      const endRecord = new Uint8Array([
+        0x50, 0x4b, 0x05, 0x06,
+        ...uint16(0),
+        ...uint16(0),
+        ...uint16(files.length),
+        ...uint16(files.length),
+        ...uint32(centralSize),
+        ...uint32(centralOffset),
+        ...uint16(0)
+      ]);
+
+      return new Blob([...localParts, ...centralParts, endRecord], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
+    }
+
+    function makeWorksheetXml(rows) {
+      const sheetRows = rows.map((row, rIdx) => {
+        const cells = row.map((value, cIdx) => {
+          const ref = columnName(cIdx) + (rIdx + 1);
+          return `<c r="${ref}" t="inlineStr"><is><t>${xmlEscape(value)}</t></is></c>`;
+        }).join("");
+        return `<row r="${rIdx + 1}">${cells}</row>`;
+      }).join("");
+
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>${sheetRows}</sheetData>
+</worksheet>`;
+    }
+
+    function makeXlsxBlob(rows) {
+      const worksheet = makeWorksheetXml(rows);
+
+      return makeZip([
+        {
+          name: "[Content_Types].xml",
+          content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>`
+        },
+        {
+          name: "_rels/.rels",
+          content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`
+        },
+        {
+          name: "xl/workbook.xml",
+          content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+          xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="Futter-Liste" sheetId="1" r:id="rId1"/>
+  </sheets>
+</workbook>`
+        },
+        {
+          name: "xl/_rels/workbook.xml.rels",
+          content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+</Relationships>`
+        },
+        {
+          name: "xl/worksheets/sheet1.xml",
+          content: worksheet
+        }
+      ]);
     }
 
     function downloadFoodList() {
@@ -1405,7 +1589,7 @@
         return;
       }
 
-      const header = [
+      const tableRows = [[
         "Marke",
         "Sorte",
         "Verpackung",
@@ -1419,52 +1603,32 @@
         "NfE",
         "NfE TM",
         "Bewertung"
-      ];
-
-      const tableRows = [
-        "<tr>" + header.map(cell => "<th>" + htmlEscape(cell) + "</th>").join("") + "</tr>"
-      ];
+      ]];
 
       rows.forEach(item => {
-        const row = [
+        tableRows.push([
           item.brand || "",
           item.sort || "",
           item.packaging || "",
           item.weight || "",
           item.lifeAge || "",
-          item.values?.protein ?? "",
-          item.values?.fett ?? "",
-          item.values?.faser ?? "",
-          item.values?.asche ?? "",
-          item.values?.feuchte ?? "",
+          item.values?.protein != null ? String(item.values.protein).replace(".", ",") : "",
+          item.values?.fett != null ? String(item.values.fett).replace(".", ",") : "",
+          item.values?.faser != null ? String(item.values.faser).replace(".", ",") : "",
+          item.values?.asche != null ? String(item.values.asche).replace(".", ",") : "",
+          item.values?.feuchte != null ? String(item.values.feuchte).replace(".", ",") : "",
           item.result?.nfeFresh != null ? item.result.nfeFresh.toFixed(1).replace(".", ",") + " %" : "",
           item.result?.nfeDry != null ? item.result.nfeDry.toFixed(1).replace(".", ",") + " %" : "",
           item.result?.ratingText || ""
-        ];
-        tableRows.push("<tr>" + row.map(cell => "<td>" + htmlEscape(cell) + "</td>").join("") + "</tr>");
+        ]);
       });
 
-      const excelHtml = `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <style>
-    table { border-collapse: collapse; font-family: Arial, sans-serif; }
-    th, td { border: 1px solid #999; padding: 6px 8px; }
-    th { background: #eee; font-weight: bold; }
-  </style>
-</head>
-<body>
-  <table>${tableRows.join("")}</table>
-</body>
-</html>`;
-
-      const blob = new Blob(["\ufeff" + excelHtml], { type: "application/vnd.ms-excel;charset=utf-8" });
+      const blob = makeXlsxBlob(tableRows);
       const url = URL.createObjectURL(blob);
       const date = new Date().toISOString().slice(0, 10);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "nfe-katze-futterliste-" + date + ".xls";
+      link.download = "nfe-katze-futterliste-" + date + ".xlsx";
       document.body.appendChild(link);
       link.click();
       link.remove();
