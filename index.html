@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: rechner-felder-gleich-v39 -->
+  <!-- Version: favoriten-v40 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -468,6 +468,14 @@
       background: var(--red);
       color: #ffffff;
     }
+    .filter-fav {
+      background: #fff0b8;
+      color: #b87900;
+    }
+    .filter-fav.active {
+      background: #d99a00;
+      color: #ffffff;
+    }
     .saved-list { display: grid; gap: 12px; }
     .empty {
       text-align: center;
@@ -528,6 +536,25 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 7px;
+    }
+    .favorite-btn {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      padding: 0;
+      border-radius: 50%;
+      background: #eef2f7;
+      color: #9aa6b8;
+      font-size: 25px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .favorite-btn.active {
+      background: #fff0b8;
+      color: #b87900;
     }
     .delete-x {
       width: 44px;
@@ -791,6 +818,7 @@
           <button type="button" class="filter-btn filter-mid" data-filter="mid" data-label="geeignet" onclick="setFoodFilter('mid')">geeignet</button>
           <button type="button" class="filter-btn filter-high" data-filter="high" data-label="vermeiden" onclick="setFoodFilter('high')">vermeiden</button>
           <button type="button" class="filter-btn active" data-filter="all" data-label="alle" onclick="setFoodFilter('all')">alle</button>
+          <button type="button" class="filter-btn filter-fav" data-filter="fav" data-label="Favoriten" onclick="setFoodFilter('fav')">Favoriten</button>
         </div>
       </div>
 
@@ -798,7 +826,7 @@
     </section>
 
     </div>
-    <div class="version-note">v39</div>
+    <div class="version-note">v40</div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1216,6 +1244,8 @@
       const weight = el("weight").value.trim();
       const lifeAge = el("lifeAge").value.trim();
 
+      const existingItem = editingId && !forceNew ? foods.find(f => f.id === editingId) : null;
+
       const item = {
         id: forceNew ? String(Date.now()) : (editingId || String(Date.now())),
         brand,
@@ -1223,6 +1253,7 @@
         packaging,
         weight,
         lifeAge,
+        favorite: existingItem ? !!existingItem.favorite : false,
         savedAt: new Date().toISOString(),
         values: {
           protein: currentResult.protein,
@@ -1303,6 +1334,23 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    async function toggleFavorite(id, event) {
+      if (event) event.stopPropagation();
+      if (!currentUser) {
+        showMessage("syncNotice", "Bitte zuerst einloggen.");
+        return;
+      }
+
+      const item = foods.find(f => f.id === id);
+      if (!item) return;
+
+      try {
+        await userFoodsCollection().doc(id).set({ favorite: !item.favorite }, { merge: true });
+      } catch (error) {
+        showMessage("syncNotice", "Favorit konnte nicht gespeichert werden: " + error.message);
+      }
+    }
+
     async function deleteFood(id, event) {
       if (event) event.stopPropagation();
       if (!currentUser) {
@@ -1350,12 +1398,19 @@
       const actions = document.createElement("div");
       actions.className = "food-actions";
 
+      const fav = document.createElement("button");
+      fav.className = "favorite-btn" + (item.favorite ? " active" : "");
+      fav.textContent = item.favorite ? "★" : "☆";
+      fav.setAttribute("aria-label", item.favorite ? "Favorit entfernen" : "Als Favorit markieren");
+      fav.onclick = (event) => toggleFavorite(item.id, event);
+
       const del = document.createElement("button");
       del.className = "delete-x";
       del.textContent = "×";
       del.setAttribute("aria-label", "Futter löschen");
       del.onclick = (event) => deleteFood(item.id, event);
 
+      actions.appendChild(fav);
       actions.appendChild(del);
       main.appendChild(top);
       main.appendChild(meta);
@@ -1390,7 +1445,10 @@
       const q = getCurrentSearchQuery();
 
       return foods.filter(item => {
-        const matchesFilter = activeFoodFilter === "all" || item.result?.ratingClass === activeFoodFilter;
+        const matchesFilter =
+          activeFoodFilter === "all"
+          || (activeFoodFilter === "fav" && !!item.favorite)
+          || item.result?.ratingClass === activeFoodFilter;
         return matchesFilter && matchesSearch(item, q);
       });
     }
@@ -1402,7 +1460,8 @@
         all: searchableFoods.length,
         good: searchableFoods.filter(item => item.result?.ratingClass === "good").length,
         mid: searchableFoods.filter(item => item.result?.ratingClass === "mid").length,
-        high: searchableFoods.filter(item => item.result?.ratingClass === "high").length
+        high: searchableFoods.filter(item => item.result?.ratingClass === "high").length,
+        fav: searchableFoods.filter(item => !!item.favorite).length
       };
 
       document.querySelectorAll(".filter-btn").forEach(btn => {
@@ -1674,7 +1733,8 @@
         "Feuchtigkeit",
         "NfE",
         "NfE TM",
-        "Bewertung"
+        "Bewertung",
+        "Favorit"
       ]];
 
       rows.forEach(item => {
@@ -1691,7 +1751,8 @@
           item.values?.feuchte != null ? String(item.values.feuchte).replace(".", ",") : "",
           item.result?.nfeFresh != null ? item.result.nfeFresh.toFixed(1).replace(".", ",") + " %" : "",
           item.result?.nfeDry != null ? item.result.nfeDry.toFixed(1).replace(".", ",") + " %" : "",
-          item.result?.ratingText || ""
+          item.result?.ratingText || "",
+          item.favorite ? "Ja" : ""
         ]);
       });
 
