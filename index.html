@@ -10,8 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: start-leer-v20 -->
-  <!-- Version: futterliste-abc-v9 -->
+  <!-- Version: firebase-sync-v21 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -444,10 +443,69 @@
       line-height: 1.4;
       margin-top: 14px;
     }
+    .auth-card input {
+      font-size: 18px;
+    }
+    .auth-status {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-align: center;
+    }
+    .auth-email {
+      font-weight: 900;
+      color: var(--accent-dark);
+      word-break: break-word;
+    }
+    .sync-note {
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      line-height: 1.45;
+      margin-top: 10px;
+    }
+    .app-content {
+      display: none;
+    }
+    .app-content.visible {
+      display: block;
+    }
   </style>
 </head>
 <body>
   <main class="wrap">
+    <section id="authCard" class="card auth-card">
+      <h2>Anmelden</h2>
+      <div class="save-grid">
+        <div>
+          <label for="authEmail">E-Mail</label>
+          <input id="authEmail" type="email" autocomplete="username" placeholder="deine E-Mail">
+        </div>
+        <div>
+          <label for="authPassword">Passwort</label>
+          <input id="authPassword" type="password" autocomplete="current-password" placeholder="Passwort">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="primary" onclick="loginAccount()">Einloggen</button>
+        <button class="secondary" onclick="registerAccount()">Konto erstellen</button>
+      </div>
+      <div id="authNotice" class="notice"></div>
+      <div class="sync-note">Melde dich auf allen Geräten mit demselben Konto an, damit die Futter-Liste synchronisiert wird.</div>
+    </section>
+
+    <section id="userCard" class="card" style="display:none">
+      <div class="auth-status">
+        <span>Angemeldet als <span id="userEmail" class="auth-email"></span></span>
+        <button class="secondary" onclick="migrateLocalFoods()">lokale Daten übernehmen</button>
+        <button class="danger" onclick="logoutAccount()">Abmelden</button>
+      </div>
+      <div id="syncNotice" class="notice"></div>
+    </section>
+
+    <div id="appContent" class="app-content">
     <section class="card">
       <div class="title">
         <div class="icon"><img src="header-logo.png" alt=""></div>
@@ -579,10 +637,29 @@
       <div id="backupNotice" class="notice"></div>
       <div class="footer-note">Die Daten werden lokal in dieser Web-App gespeichert.</div>
     </section>
+    </div>
   </main>
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script>
     const fields = ["protein", "fett", "faser", "asche", "feuchte"];
+    const firebaseConfig = {
+      apiKey: "AIzaSyBnEB2FIXJUfojSUg1oC6-gWnKQJrtpLBo",
+      authDomain: "nfe-katze.firebaseapp.com",
+      projectId: "nfe-katze",
+      storageBucket: "nfe-katze.firebasestorage.app",
+      messagingSenderId: "673859933645",
+      appId: "1:673859933645:web:81c107182b94b71cf1e084"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    auth.languageCode = "de";
+
+
     const suggestionOptions = {
       brandOptions: ["Affinity Advance", "Affinity Advance Feline", "Affinity Advance Veterinary Diets Cat", "Affinity Ultima", "Affinity Ultima Cat Expert Nutrition", "Affinity Ultima Delicious", "Affinity Ultima Delicious Mousse", "Affinity Ultima Nature", "Affinity Ultima Nature Paté", "Almo Nature", "Almo Nature Bio Organic", "Almo Nature Daily", "Almo Nature Daily Mousse", "Almo Nature Daily Stückchen in Gelee", "Almo Nature Daily Stückchen in Sauce", "Almo Nature Functional", "Almo Nature HFC", "Almo Nature HFC Complete", "Almo Nature HFC Jelly", "Almo Nature HFC Mousse", "ANIfit", "ANIfit Bio", "AniForte", "AniForte PureNature", "animonda Carny", "animonda Carny Country", "animonda Carny Ocean", "animonda Carny Pouch", "animonda Carny Single Protein", "animonda Integra Protect", "animonda vom Feinsten", "animonda vom Feinsten Feine Vielfalt", "animonda vom Feinsten in Gelee", "animonda vom Feinsten in Sauce", "animonda vom Feinsten Mildes Menü", "animonda vom Feinsten Milkies", "animonda vom Feinsten mit Schlemmerkern", "animonda vom Feinsten Mousse", "animonda vom Feinsten NoGrain", "animonda vom Feinsten Raffinesse in Gelee", "animonda vom Feinsten Raffinesse in Sauce", "Applaws", "Applaws Cat in Soße", "Applaws Cat Natural in Brühe", "Applaws Cat Pot", "Applaws in Brühe", "Applaws in Gelee", "Applaws Mousse", "Benek Super Chunks", "Benek Super Filets ins Soße", "Benek Super Gedämpfte Filets", "Benek Super Getreidefrei Chunks", "Benek Super Getreidefrei Gedämpfte Filets", "Benek Super Professional Line", "Best Nature", "Bozita", "Bozita Häppchen in Gelee", "Bozita Häppchen in Sauce", "Brit Care Cat", "Brit Care Cat Fillets in Gravy", "Brit Care Cat Fillets in Jelly", "Brit Premium By Nature", "Brit Vet Diet Cat Cans", "Brit Vet Diet Cat Soup", "Catessy Feine Pasteten", "Catessy Häppchen in Gelee", "Catessy Häppchen in Sauce", "Catit Cuisine Bites", "Catit Cuisine Creamy", "Catit Cuisine Dinner", "Catit Cuisine Divine Shreds", "Catit Cuisine Duet", "Catit Cuisine Eintöpfe", "Catit Cuisine Fillet", "Catit Cuisine Mousse", "Catit Cuisine Pastete", "Cat's Love", "Cat's Love Bio", "Catz finefood Classic", "Catz finefood Fillets", "Catz finefood Organic", "Catz finefood Pure", "Catz finefood Ragout", "Concept for Life", "Concept for Life All Cats", "Concept for Life Light", "Concept for Life Veterinary Diet", "Coshida Feine Pastete", "Coshida Pure Taste", "Coshida Selection", "Cosma Asia in Jelly", "Cosma Bowl", "Cosma Duo Layer", "Cosma Nature", "Cosma Original in Jelly", "Cosma Pure", "Cosma Soup", "Crave Fleischstreifen", "Crave Pastete", "Dein Bestes Augenschmaus", "Dein Bestes BBQ", "Dein Bestes Bio", "Dein Bestes Das Süppchen", "Dein Bestes Exquisit", "Dein Bestes Himmlisch Mousse", "Dein Bestes Hofladen", "Dein Bestes in Gellee", "Dein Bestes in Sauce", "Dein Bestes Naturverliebt", "Dein Bestes Omas Küchenklassiker", "Dein Bestes Pastete", "Dein Bestes Sensitive", "Dein Bestes Sternenküche", "Dogs´n Tiger Nassfutter", "Dogs´n Tiger Premium Nassfutter", "Edgard & Cooper Filets", "Edgard & Cooper Paté", "Edgard & Cooper Stückchen in Soße", "Farmina N&D Natural", "Farmina N&D Ocean", "Farmina N&D Prime", "Farmina N&D Pumpkin", "Farmina N&D Quinoa", "Farmina Vet Life", "Feline Finest", "Feline Porta 21", "Felix Doppelt Lecker", "Felix Naturally Delicious", "Felix Sensations Crunchy", "Felix Sensations Extras", "Felix Sensations Gelee", "Felix Sensations Sauce", "Felix So gut wie es aussieht Gelee", "Felix So gut wie es aussieht Sauce", "Felix Soup", "Felix Tasty Shreds", "Fellicita", "Feringa Bio Menüs", "Feringa Classic Meat Menüs", "Feringa Katzensuppe", "Feringa Single Meat", "Fit+Fun Jelly", "Fit+Fun Paté", "Fit+Fun Ragout", "Gourmet A la Carte", "Gourmet Gold Délicatesse en Sauce", "Gourmet Gold Feine Komposition", "Gourmet Gold Feine Pastete", "Gourmet Gold Raffiniertes Ragout", "Gourmet Gold Saftig-feine Streifen", "Gourmet Gold Zarte Häppchen in Sauce", "Gourmet Mon Petit Intense", "Gourmet Nature's Creations", "Gourmet Nature's Creations Mousse", "Gourmet Nature's Creations Soup", "Gourmet Perle Duetto", "Gourmet Perle Erlesene Streifen", "Gourmet Perle Genuss in Gelee", "Gourmet Perle Genuss in Sauce", "Gourmet Revelations Feine Häppchen", "Gourmet Revelations Mousse", "GranataPet Delicatessen", "GranataPet Filet à la carte", "GranataPet Suppenkasper", "GranataPet Symphonie", "Green Petfood FairCat", "Green Petfood FairCat Balance", "Green Petfood FairCat Care", "Green Petfood FairCat Fit", "Green Petfood FairCat Sensitive", "Green Petfood Paté", "Greenwoods Delight", "Greenwoods Joy", "Happy Cat Bio", "Happy Cat Meat in Sauce", "Happy Cat Minkas Duo", "Happy Cat Snack Soup", "Happy Cat VET Diät", "Herrmann's Manufaktur Kreativ-Mix", "Herrmann's Manufaktur Reinfleisch", "Herrmann's Manufaktur Selection", "Hill's Prescription", "Hill's Science Plan", "Hill's Vet Essentials", "IAMS Advanced Nutrition", "IAMS Delights", "IAMS Naturally", "Ja Feine Häppchen", "Ja Feine Pasteten", "Ja Genießer-Menü", "Ja Herzhafte Stückchen", "Ja Herzhaftes Ragout", "Ja Saftige Pastete", "Ja Zarte Stückchen in feiner Sauce", "Josera Filet", "Josera Josicat", "Josera Josicat Finest", "Josera Josicat Paté", "Josera Josicat Rich", "Josera Nassfutter", "Josera Paté", "Josera Soup", "Kattovit Feline Diet", "Kattovit Feline Drink", "Kattovit Vital Care", "Kitty Cat Filet in Paté", "Kitty Cat Paté", "Leonardo Drinks", "Leonardo extra Filet", "Leonardo Finest Selection", "Leonardo Pulled Beef", "Leonardo Quality Selection", "Leonardo Superior Selection", "Liebesgut Bio", "Liebesgut Sensitiv", "Life Cat Natural", "Life Cat Natural Mousse", "Life Cat Natural Soup", "Lifecat Le Ricette", "Lifecat Natural Trancetti", "Lifecat Pouch", "Lily's Kitchen Shredded Fillets", "Lily's Kitchen Smooth Paté", "Lily's Kitchen Spooky Paté", "Lily's Kitchen Tasty Cuts", "Lucky Lou Extra Food", "Lucky Lou Food Code", "Lucky Lou Lifestage", "Lucky Lou Mäusle", "Lucky Lou SuperMono", "Lucky-Kitty", "Lyra Pet Lecker.Pet Balu´s", "Lyra Pet Lecker.Pet Emily´s", "Lyra Pet Lecker.Pet Leo´s", "Lyra Pet Lecker.Pet Mia´s", "Lyra Pet Lecker.Pet Surf'n'Turf", "MAC's", "MAC's Feinschmeckermenü", "MAC's Monoprotein", "MAC's Paw Power Drink", "MAC's Vetcare", "Miamor Cat Cream", "Miamor Feine Beute", "Miamor Feine Filets in Jelly", "Miamor Feine Filets in Sauce", "Miamor Feine Filets Mini", "Miamor Feine Filets naturelle", "Miamor Feines & Filet", "Miamor Milde Mahlzeit", "Miamor Pastete", "Miamor Pâté & Filet", "Miamor Ragout Royale in Gelee", "Miamor Ragout Royale in Sauce", "Miamor Sensible Snack", "Miamor Trinkfein", "MjAMjAM", "MjAMjAM an Soße", "MjAMjAM Bio", "MjAMjAM Chicks & Friends", "MjAMjAM Duett", "MjAMjAM Insekt", "MjAMjAM Monoprotein", "MjAMjAM Purer Filetgenuss", "MjAMjAM Purer Fleischgenuss", "MjAMjAM VetCat", "MjAMjAM Wellness", "Moments", "Moments Diamond", "Moments Selection", "Moments Suppe", "Moments Topping", "MultiFit", "MultiFit Care", "MultiFit Classic", "MultiFit It's Me Elvis", "MultiFit Jelly", "MultiFit Mini", "MultiFit Sauce", "MultiFit Simply Good", "MultiFit Special Jelly", "MultiFit Tasty Duo", "Natural Trainer", "Natural Trainer Paté", "Natural Trainer Straccetti", "Natural Trainer Straccetti Difficult Appetite", "Nature's Variety Bites", "Nature's Variety Pâté", "Pawsome", "Pawsome light", "Perfect Fit", "Perfect Fit Indoor", "Perfect Fit Natural Vitality", "Perfect Fit Sensitive", "Pets Deli Filet Menü", "Pets Deli Filet Menü Beauty", "Pets Deli Hypo Care Filet Menü", "Pets Deli Juicy Filets", "Pets Deli Meaty Pâté", "Pets Deli Pure Meat", "Pets Deli Pure Meat Belly", "Pets Deli Pure Meat Hypo Care", "Pets Deli Pure Meat Immunity", "Pets Deli Pure Meat Yummy", "Pets Deli Saucen Menü", "Pets Deli Vet", "Porta 21 Superfood", "Premiere cats love nature", "Premiere Deluxe Ragout", "Premiere Fine Filets", "Premiere Finest Gelee", "Premiere Gelee", "Premiere Meat Menu", "Premiere Pure Pâté", "Premiere Royal Ragout", "Premiere Soft Mousse", "Premiere Tender Stripes", "Pure Nature", "Purina Cat Chow in Gelee", "Purina Cat Chow in Sauce", "Purina ONE", "Purina ONE Coat & Hairball", "Purina ONE Indoor", "Purina ONE Sensitive", "Purina Pro Plan", "Purina Pro Plan Delicate", "Purina Pro Plan Feline FortiFlora", "Purina Pro Plan HC Hydra Care", "Purina Pro Plan Veterinary Diets", "Purizon Chicken Fillet", "Purizon Organic", "Purizon Single Meat", "Purizon Superfoods", "Real Nature Original", "Real Nature Original Filet & Mousse", "Real Nature Wilderness Adult", "Real Nature Wilderness Kitten", "Real Nature Wilderness Senior", "REAVET Feine Menues", "Royal Canin", "Royal Canin Ageing", "Royal Canin Appetite Control Airlift", "Royal Canin Appetite Control Care", "Royal Canin British Shorthair Adult", "Royal Canin Digestive Care", "Royal Canin Hair & Skin", "Royal Canin Indoor", "Royal Canin Instinctive", "Royal Canin Kitten", "Royal Canin Light Weight Care", "Royal Canin Maine Coon Adult", "Royal Canin Persian Adult", "Royal Canin Sensory Feel", "Royal Canin Sensory Smell", "Royal Canin Sensory Smell Taste Feel", "Royal Canin Sensory Taste", "Royal Canin Urinary Care", "Royal Canin Veterinary", "Sanabelle", "Sanabelle All Meat Pastete", "Sanabelle Filets in Soße", "Sanabelle Freshe Mieze", "Sanabelle Heimat", "Schesir After Dark", "Schesir Cat Soup", "Schesir Complements", "Schesir Complete Nutrition", "Schesir Kitten", "Schesir Mousse", "Schmusy Nature", "Schmusy Ragout in Gelee", "Schmusy Ragout in Sauce", "Select Gold", "Select Gold Acceptance", "Select Gold Acceptance Adult", "Select Gold Classic Fit", "Select Gold Digestion", "Select Gold Hair & Skin", "Select Gold Indoor", "Select Gold Light", "Select Gold Medica", "Select Gold Outdoor", "Select Gold Pure", "Select Gold Sensitive Monoprotein", "Select Gold Urinary", "Smilla", "Smilla Deluxe Häppchen in Gelee", "Smilla Deluxe Häppchen in Sauce", "Smilla Deluxe Mousse", "Smilla Essentials Häppchen in Gelee", "Smilla Essentials Häppchen in Sauce", "Smilla Fine Menu", "Smilla Indoor", "Smilla Katzendrink", "Smilla light", "Smilla Töpfchen", "Smilla Veterinary Diet", "STRAYZ Bio Futter", "STRAYZ Bio in Sauce", "Taste of the Wild", "Terra Felis", "Terra Felis Famousse", "Terra Felis Soupreme", "The Better Cat Monoprotein", "The Better Cat Pur", "The Better Cat Suppe", "Tundra Cat", "Vitakraft Drink", "Vitakraft Liquid Snack", "Vitakraft Poésie Classique in Gelee", "Vitakraft Poésie Classique in Sauce", "Vitakraft Poésie Création in Gelee", "Vitakraft Poésie Création in Sauce", "Vitakraft Poésie Délice", "Vitakraft Poésie Délice Plus", "Vitakraft Poésie Mousse", "Wild Freedom", "Wild Freedom Instinctive", "Wild Freedom Triple Taste", "Wildes Land Bio", "Wildes Land Classic", "Wildes Land Filet", "Wildes Land PUR", "Wildes Land Ragout", "Wildes Land Soup", "Winston Bio", "Winston Deluxe", "Winston Feine Häppchen", "Winston Feine Mahlzeit in Gelee", "Winston Feine Mahlzeit in Sauce", "Winston Feine Paté", "Winston Gourmet Filets", "Winston Gourmet Ragout", "Winston Menü", "Winston Menüs", "Winston Nature", "Winston Pastete", "Winston Saftige Häppchen", "Winston Schlemmer-Menü", "Winston Sensitiv-Menü", "Winston Wellness-Menü", "WOW Cat Filet", "WOW Cat Paté", "WOW Cat Samtige Mousse", "WOW Cat Saucen-Menü", "WOW Cat Suppe", "Yarrah Bio Bröckchen", "Yarrah Bio Filets", "Yarrah Bio Pastete", "ZooRoyal", "ZooRoyal All Meat", "ZooRoyal Bio Pastete", "ZooRoyal Delikate Stückchen", "ZooRoyal Feine Paté", "ZooRoyal Genuss Pastete", "ZooRoyal Gourmet Leckerbissen", "ZooRoyal Gourmet Menü in Gelee", "ZooRoyal Grill Menü in Sauce", "ZooRoyal Minkas", "ZooRoyal Minkas Naturkost", "ZooRoyal Monoprotein Pastete", "ZooRoyal Mousse", "ZooRoyal Pastete", "ZooRoyal Zarte Hünchenfilets"],
       sortOptions: ["Büffel", "Büffel & Blaubeeren", "Edelfisch", "Ente", "Ente & Geflügel", "Ente & Kaninchen", "Ente & Käse", "Ente & Pute", "Ente & Huhn", "Ente & Huhn & Karotten", "Ente & Pulled Beef", "Ente, Kaninchen & Rind", "Ente, Makrele & Schwein", "Ente, Pute & Huhn", "Entenherzen", "Fasan", "Fasan & Cranberries", "Fasan, Forelle & Schwein", "Fasan, Weißfisch & Huhn", "Fleischmenü", "Forelle", "Gans", "Gans & Leber", "Geflügel", "Geflügel & Cranberry", "Geflügel & Ei", "Geflügel & Lachs", "Geflügel & Leber", "Geflügel, Ente & Truthahn", "Geflügel, Hering & Shrimps", "Geflügelleber", "Geflügelherzen", "Hering", "Herz", "Huhn", "Huhn & Ei", "Huhn & Ente", "Huhn & Kaninchen", "Huhn & Lachs", "Huhn & Lamm", "Huhn & Makrele", "Huhn & Pute", "Huhn & Rind", "Huhn & Katzenminze", "Huhn & Pulled Beef", "Huhn, Ente & Gans", "Huhn, Ente & Shrimps", "Huhn, Kalb & Reh", "Huhn, Pute & Entenherzen", "Huhn, Pute & Forelle", "Huhn, Pute & Kaninchen", "Hühnerherzen", "Hühnchenleber", "Kabeljau", "Kalb", "Kalb & Geflügel", "Kalb & Gemüse", "Kalb & Pute", "Kalb & Rind", "Kalb pur", "Kaninchen", "Kaninchen & Cranberries", "Kaninchen & Geflügel", "Lachs", "Lachs & Huhn", "Lamm", "Lamm & Geflügel", "Lamm & Pute", "Lamm & Pulled Beef", "Leber", "Makrele", "Meeresfrüchte", "Multifleisch-Cocktail", "Pferd", "Pute", "Pute & Forelle", "Pute & Huhn", "Pute & Hühnchenleber", "Pute & Lamm", "Pute, Huhn & Preiselbeere", "Pute, Huhn & Shrimps", "Pute, Rind & Heidelbeeren", "Pute, Wild & Insekten", "Putenherz", "Reh", "Rind", "Rind & Forelle", "Rind & Herz", "Rind & Huhn", "Rind & Hühnerherzen", "Rind & Kabeljau", "Rind & Kaninchen", "Rind & Lamm", "Rind & Leber", "Rind & Pute", "Rind & Putenherz", "Rind & Truthahn", "Rind & Wild", "Rind, Pute & Kaninchen", "Rind, Pute & Shrimps", "Scholle", "Seefisch", "Seelachs", "Shrimps", "Thunfisch", "Truthahn", "Weißfisch", "Wild", "Wild & Heidelbeeren", "Wild & Pute"],
@@ -666,6 +743,8 @@
     const storeKey = "nfe_cat_foods_pwa_v2";
     const lastValuesKey = "nfe_cat_last_values_pwa_v2";
     let foods = [];
+    let currentUser = null;
+    let unsubscribeFoods = null;
     let currentResult = null;
     let editingId = null;
 
@@ -683,10 +762,31 @@
       }
     }
 
+    function userFoodsCollection() {
+      if (!currentUser) return null;
+      return db.collection("users").doc(currentUser.uid).collection("foods");
+    }
+
     function setStoredFoods(nextFoods) {
       foods = nextFoods;
-      localStorage.setItem(storeKey, JSON.stringify(foods));
       renderFoods();
+    }
+
+    function subscribeToFoods() {
+      if (unsubscribeFoods) {
+        unsubscribeFoods();
+        unsubscribeFoods = null;
+      }
+
+      const collection = userFoodsCollection();
+      if (!collection) return;
+
+      unsubscribeFoods = collection.onSnapshot(snapshot => {
+        foods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderFoods();
+      }, error => {
+        showMessage("syncNotice", "Futter-Liste konnte nicht geladen werden: " + error.message);
+      });
     }
 
     function saveLastValues() {
@@ -742,6 +842,82 @@
       const section = el("foodListSection");
       if (!section) return;
       section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function showAuthMessage(msg) {
+      showMessage("authNotice", msg);
+    }
+
+    function getAuthInput() {
+      return {
+        email: el("authEmail").value.trim(),
+        password: el("authPassword").value
+      };
+    }
+
+    async function registerAccount() {
+      const { email, password } = getAuthInput();
+      if (!email || !password) {
+        showAuthMessage("Bitte E-Mail und Passwort eintragen.");
+        return;
+      }
+      try {
+        await auth.createUserWithEmailAndPassword(email, password);
+        showAuthMessage("Konto wurde erstellt.");
+      } catch (error) {
+        showAuthMessage("Konto konnte nicht erstellt werden: " + error.message);
+      }
+    }
+
+    async function loginAccount() {
+      const { email, password } = getAuthInput();
+      if (!email || !password) {
+        showAuthMessage("Bitte E-Mail und Passwort eintragen.");
+        return;
+      }
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch (error) {
+        showAuthMessage("Login fehlgeschlagen: " + error.message);
+      }
+    }
+
+    async function logoutAccount() {
+      try {
+        await auth.signOut();
+      } catch (error) {
+        showMessage("syncNotice", "Abmelden fehlgeschlagen: " + error.message);
+      }
+    }
+
+    async function migrateLocalFoods() {
+      if (!currentUser) {
+        showMessage("syncNotice", "Bitte zuerst einloggen.");
+        return;
+      }
+
+      const localFoods = getStoredFoods().filter(item => item && item.values && item.result);
+      if (!localFoods.length) {
+        showMessage("syncNotice", "Keine lokalen Daten zum Übernehmen gefunden.");
+        return;
+      }
+
+      if (!confirm(localFoods.length + " lokale Einträge in die Cloud übernehmen?")) return;
+
+      try {
+        const batch = db.batch();
+        const collection = userFoodsCollection();
+
+        localFoods.forEach((item, index) => {
+          const id = item.id || String(Date.now() + index);
+          batch.set(collection.doc(id), { ...item, id });
+        });
+
+        await batch.commit();
+        showMessage("syncNotice", "Lokale Daten wurden übernommen.");
+      } catch (error) {
+        showMessage("syncNotice", "Lokale Daten konnten nicht übernommen werden: " + error.message);
+      }
     }
 
     function getRating(nfeDry) {
@@ -855,7 +1031,11 @@
       saveFoodInternal(true);
     }
 
-    function saveFoodInternal(forceNew) {
+    async function saveFoodInternal(forceNew) {
+      if (!currentUser) {
+        showMessage("notice", "Bitte zuerst einloggen.");
+        return;
+      }
       if (!calculate()) return;
 
       const wasEditing = !!editingId && !forceNew;
@@ -888,17 +1068,13 @@
         }
       };
 
-      let nextFoods = foods.slice();
-      if (editingId && !forceNew) {
-        const idx = nextFoods.findIndex(f => f.id === editingId);
-        if (idx >= 0) nextFoods[idx] = item;
-        else nextFoods.unshift(item);
-      } else {
-        nextFoods.unshift(item);
+      try {
+        const collection = userFoodsCollection();
+        await collection.doc(item.id).set(item);
+        clearAfterSave(forceNew ? "Neues Futter gespeichert." : (wasEditing ? "Änderung gespeichert." : "Futter gespeichert."));
+      } catch (error) {
+        showMessage("notice", "Futter konnte nicht gespeichert werden: " + error.message);
       }
-
-      setStoredFoods(nextFoods);
-      clearAfterSave(forceNew ? "Neues Futter gespeichert." : (wasEditing ? "Änderung gespeichert." : "Futter gespeichert."));
     }
 
     function setEditMode(item) {
@@ -952,14 +1128,23 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    function deleteFood(id, event) {
+    async function deleteFood(id, event) {
       if (event) event.stopPropagation();
+      if (!currentUser) {
+        showMessage("syncNotice", "Bitte zuerst einloggen.");
+        return;
+      }
       const item = foods.find(f => f.id === id);
       if (!item) return;
       const label = [item.brand || "Unbenanntes Futter", item.sort].filter(Boolean).join(" – ");
       if (!confirm("„" + label + "“ wirklich löschen?")) return;
-      setStoredFoods(foods.filter(f => f.id !== id));
-      if (editingId === id) newFood();
+
+      try {
+        await userFoodsCollection().doc(id).delete();
+        if (editingId === id) newFood();
+      } catch (error) {
+        showMessage("syncNotice", "Futter konnte nicht gelöscht werden: " + error.message);
+      }
     }
 
     function makeFoodNode(item) {
@@ -1058,21 +1243,36 @@
       }
     }
 
-    function importData() {
+    async function importData() {
+      if (!currentUser) {
+        showMessage("backupNotice", "Bitte zuerst einloggen.");
+        return;
+      }
+
       const raw = el("importData").value.trim();
       if (!raw) {
         showMessage("backupNotice", "Bitte Backup-Daten einfügen.");
         return;
       }
+
       try {
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) throw new Error("Kein Array");
-        const cleaned = parsed.filter(item => item && item.brand && item.sort && item.values && item.result);
-        setStoredFoods(cleaned);
+
+        const cleaned = parsed.filter(item => item && item.values && item.result);
+        const batch = db.batch();
+        const collection = userFoodsCollection();
+
+        cleaned.forEach((item, index) => {
+          const id = item.id || String(Date.now() + index);
+          batch.set(collection.doc(id), { ...item, id });
+        });
+
+        await batch.commit();
         el("importData").value = "";
         showMessage("backupNotice", "Backup wurde importiert.");
       } catch (e) {
-        showMessage("backupNotice", "Backup konnte nicht gelesen werden.");
+        showMessage("backupNotice", "Backup konnte nicht gelesen/importiert werden: " + e.message);
       }
     }
 
@@ -1084,9 +1284,34 @@
 
     setupSuggestions();
     el("chooserSearch").addEventListener("input", renderChooserList);
-    foods = getStoredFoods();
     renderFoods();
     resetTransientFieldsOnStart();
+
+    auth.onAuthStateChanged(user => {
+      currentUser = user || null;
+
+      if (unsubscribeFoods) {
+        unsubscribeFoods();
+        unsubscribeFoods = null;
+      }
+
+      if (currentUser) {
+        el("authCard").style.display = "none";
+        el("userCard").style.display = "block";
+        el("appContent").classList.add("visible");
+        el("userEmail").textContent = currentUser.email || "";
+        subscribeToFoods();
+        resetTransientFieldsOnStart();
+      } else {
+        foods = [];
+        renderFoods();
+        resetTransientFieldsOnStart();
+        el("authCard").style.display = "block";
+        el("userCard").style.display = "none";
+        el("appContent").classList.remove("visible");
+        el("userEmail").textContent = "";
+      }
+    });
 
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
