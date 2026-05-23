@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version52-datenschutz -->
+  <!-- Version: version53-listen-export -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -878,6 +878,19 @@
       align-items: center;
       justify-content: center;
     }
+    .admin-download-row {
+      display: flex;
+      justify-content: center;
+      margin: 8px 0 10px;
+    }
+    .admin-download-btn {
+      font-size: 13px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      min-width: 0;
+      background: #fff0b8;
+      color: #b87900;
+    }
     .option-admin-list {
       display: grid;
       align-content: start;
@@ -1225,6 +1238,10 @@
           <button type="button" class="primary admin-add-btn" onclick="addOptionValueFromAdmin()">+</button>
         </div>
 
+        <div class="admin-download-row">
+          <button type="button" class="secondary admin-download-btn" onclick="downloadSuggestionLists()">Listen herunterladen</button>
+        </div>
+
         <div id="optionNotice" class="notice"></div>
         <div id="optionAdminList" class="option-admin-list"></div>
       </section>
@@ -1279,7 +1296,7 @@
     </section>
 
     </div>
-    <div class="version-note">v52 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v53 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -3415,7 +3432,7 @@
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
           xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <sheets>
-    <sheet name="Futter-Liste" sheetId="1" r:id="rId1"/>
+    <sheet name="Export" sheetId="1" r:id="rId1"/>
   </sheets>
 </workbook>`
         },
@@ -3431,6 +3448,51 @@
           content: worksheet
         }
       ]);
+    }
+
+    function downloadSuggestionLists() {
+      if (!isCurrentAdmin()) {
+        showMessage("optionNotice", "Nur Admin darf Listen herunterladen.");
+        return;
+      }
+
+      const labels = {
+        brandOptions: "Marken",
+        sortOptions: "Sorten",
+        packagingOptions: "Verpackung",
+        weightOptions: "Gewicht",
+        lifeAgeOptions: "Lebensalter"
+      };
+
+      const keys = ["brandOptions", "sortOptions", "packagingOptions", "weightOptions", "lifeAgeOptions"];
+      const tableRows = [["Bereich", "Nr.", "Eintrag"]];
+
+      keys.forEach(key => {
+        const label = labels[key] || key;
+        const values = sortOptionValues(suggestionOptions[key] || []);
+
+        if (!values.length) {
+          tableRows.push([label, "", ""]);
+          return;
+        }
+
+        values.forEach((value, index) => {
+          tableRows.push([label, String(index + 1), value]);
+        });
+      });
+
+      const blob = makeXlsxBlob(tableRows);
+      const url = URL.createObjectURL(blob);
+      const date = new Date().toISOString().slice(0, 10);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "nfe-katze-futterlisten-" + date + ".xlsx";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      showMessage("optionNotice", "Listen wurden heruntergeladen.");
     }
 
     function downloadFoodList() {
