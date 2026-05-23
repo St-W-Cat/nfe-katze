@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version45 -->
+  <!-- Version: version46-stabil -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1047,7 +1047,7 @@
     </section>
 
     </div>
-    <div class="version-note">v45</div>
+    <div class="version-note">v46</div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1086,14 +1086,6 @@
       packagingOptions: { docId: "packaging", title: "Verpackungen" },
       weightOptions: { docId: "weights", title: "Gewichte" },
       lifeAgeOptions: { docId: "lifeAges", title: "Lebensalter" }
-    };
-
-    const optionFoodFields = {
-      brandOptions: "brand",
-      sortOptions: "sort",
-      packagingOptions: "packaging",
-      weightOptions: "weight",
-      lifeAgeOptions: "lifeAge"
     };
 
     let unsubscribeOptions = [];
@@ -1312,44 +1304,6 @@
       await addOptionValue(key, value, false);
     }
 
-    async function updateAllFoodsAfterOptionRename(key, oldValue, newValue) {
-      const field = optionFoodFields[key];
-      if (!field || !isCurrentAdmin()) return 0;
-
-      // Ohne where/orderBy, damit Firebase keine zusätzlichen Collection-Group-Indexe benötigt.
-      const snapshot = await db.collectionGroup("foods").get();
-
-      if (snapshot.empty) return 0;
-
-      const oldKey = (oldValue || "").toLocaleLowerCase("de");
-      let changed = 0;
-      let batch = db.batch();
-      let batchCount = 0;
-
-      for (const doc of snapshot.docs) {
-        const data = doc.data() || {};
-        const currentValue = (data[field] || "").toLocaleLowerCase("de");
-
-        if (currentValue !== oldKey) continue;
-
-        batch.update(doc.ref, { [field]: newValue });
-        changed++;
-        batchCount++;
-
-        if (batchCount >= 450) {
-          await batch.commit();
-          batch = db.batch();
-          batchCount = 0;
-        }
-      }
-
-      if (batchCount > 0) {
-        await batch.commit();
-      }
-
-      return changed;
-    }
-
     async function editOptionValue(key, oldValue) {
       const nextValue = prompt("Eintrag korrigieren:", oldValue);
       if (nextValue === null) return;
@@ -1368,16 +1322,7 @@
 
       const next = current.map(item => item.toLocaleLowerCase("de") === oldKey ? clean : item);
       const saved = await saveOptionValues(key, next);
-      if (saved) {
-        try {
-          const changedFoods = await updateAllFoodsAfterOptionRename(key, oldValue, clean);
-          showMessage("optionNotice", changedFoods
-            ? "Eintrag geändert und " + changedFoods + " Futter bei allen angepasst."
-            : "Eintrag wurde geändert.");
-        } catch (error) {
-          showMessage("optionNotice", "Liste geändert, aber Futter konnten nicht angepasst werden: " + error.message);
-        }
-      }
+      if (saved) showMessage("optionNotice", "Eintrag wurde geändert.");
     }
 
     async function deleteOptionValue(key, value) {
