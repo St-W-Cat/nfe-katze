@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version46-stabil -->
+  <!-- Version: version47 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1047,7 +1047,7 @@
     </section>
 
     </div>
-    <div class="version-note">v46</div>
+    <div class="version-note">v47</div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1336,15 +1336,6 @@
       if (saved) showMessage("optionNotice", "Eintrag wurde gelöscht.");
     }
 
-    async function rememberOptionsFromFood(item) {
-      if (!isCurrentAdmin()) return;
-
-      await addOptionValue("brandOptions", item.brand, true);
-      await addOptionValue("sortOptions", item.sort, true);
-      await addOptionValue("packagingOptions", item.packaging, true);
-      await addOptionValue("weightOptions", item.weight, true);
-      await addOptionValue("lifeAgeOptions", item.lifeAge, true);
-    }
 
     function setupSuggestions() {
       // Die Vorschläge werden jetzt über den eigenen Auswahl-Dialog genutzt,
@@ -1807,7 +1798,6 @@
       try {
         const collection = userFoodsCollection();
         await collection.doc(item.id).set(item);
-        await rememberOptionsFromFood(item);
         clearAfterSave(forceNew ? "Neues Futter gespeichert & synchronisiert." : (wasEditing ? "Änderung gespeichert & synchronisiert." : "Futter gespeichert & synchronisiert."));
       } catch (error) {
         showMessage("notice", "Futter konnte nicht gespeichert werden: " + error.message);
