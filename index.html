@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version49 -->
+  <!-- Version: version50-zugang -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -633,6 +633,104 @@
       line-height: 1.4;
       margin-top: 14px;
     }
+    .access-card {
+      text-align: center;
+    }
+    .access-card p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+      margin: 8px 0 14px;
+    }
+    .user-access-card {
+      grid-template-rows: auto auto 1fr;
+    }
+    .user-access-list {
+      display: grid;
+      align-content: start;
+      gap: 8px;
+      min-height: 0;
+      overflow: auto;
+      overscroll-behavior: contain;
+      padding-right: 2px;
+      padding-bottom: 8px;
+    }
+    .user-access-item {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: #fffdfb;
+      border-radius: 16px;
+      padding: 10px;
+    }
+    .user-access-email {
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--text);
+      word-break: break-word;
+    }
+    .user-access-meta {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .user-access-status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: fit-content;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .status-pending {
+      background: #fff0b8;
+      color: #b87900;
+    }
+    .status-approved {
+      background: #e3f6ec;
+      color: var(--green);
+    }
+    .status-blocked {
+      background: #ffe3e3;
+      color: var(--red);
+    }
+    .user-access-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+    .user-access-actions button {
+      min-width: 0;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .approve-user-btn {
+      background: #e3f6ec;
+      color: var(--green);
+    }
+    .block-user-btn {
+      background: #ffe3e3;
+      color: var(--red);
+    }
+    .pending-count-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      margin-left: 4px;
+      border-radius: 999px;
+      background: #d99a00;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+    }
     .version-note {
       text-align: center;
       color: #9aa6b8;
@@ -800,7 +898,8 @@
       word-break: break-word;
     }
     .logout-mini,
-    .lists-mini {
+    .lists-mini,
+    .users-mini {
       padding: 7px 10px;
       border-radius: 999px;
       font-size: 12px;
@@ -813,6 +912,10 @@
     .lists-mini {
       background: #efe7ff;
       color: var(--accent-dark);
+    }
+    .users-mini {
+      background: #fff0b8;
+      color: #b87900;
     }
     .sync-note {
       color: var(--muted);
@@ -876,10 +979,17 @@
       <div class="auth-status">
         <span class="auth-label">Angemeldet als <span id="userEmail" class="auth-email"></span></span>
         <button id="openListsButton" class="lists-mini" onclick="openListsAdmin()" style="display:none">Listen</button>
+        <button id="openUsersButton" class="users-mini" onclick="openUsersAdmin()" style="display:none">Nutzer</button>
         <button class="logout-mini" onclick="logoutAccount()">Abmelden</button>
       </div>
     </section>
     <div id="syncNotice" class="global-notice"></div>
+
+    <section id="accessCard" class="card access-card" style="display:none">
+      <h2>Konto wartet auf Freigabe</h2>
+      <p id="accessMessage">Dein Konto wurde erstellt. Bitte warte, bis es freigegeben wurde.</p>
+      <button class="secondary small-action" onclick="logoutAccount()">Abmelden</button>
+    </section>
 
     <div id="appContent" class="app-content">
     <section class="card">
@@ -1010,6 +1120,18 @@
       </section>
     </div>
 
+    <div id="userAccessOverlay" class="admin-options-overlay" style="display:none" onclick="closeUsersAdmin(event)">
+      <section id="userAccessCard" class="card admin-options-card user-access-card" onclick="event.stopPropagation()">
+        <div class="admin-head">
+          <h2>Nutzer</h2>
+          <button type="button" class="admin-close" aria-label="Nutzer schließen" onclick="closeUsersAdmin()">×</button>
+        </div>
+
+        <div id="userAccessNotice" class="notice"></div>
+        <div id="userAccessList" class="user-access-list"></div>
+      </section>
+    </div>
+
     <section id="foodListSection" class="card">
       <div class="food-list-head">
         <button id="foodListToggle" type="button" class="food-list-toggle" aria-label="Futter einklappen" onclick="toggleFoodList()">
@@ -1047,7 +1169,7 @@
     </section>
 
     </div>
-    <div class="version-note">v49</div>
+    <div class="version-note">v50</div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1629,6 +1751,9 @@
 
     let version49MigrationStarted = false;
     let unsubscribeOptions = [];
+    let unsubscribeUserAccess = null;
+    let accessUsers = [];
+    let currentAccessStatus = "unknown";
 
     function normalizeOptionValue(value) {
       return (value || "").trim().replace(/\s+/g, " ");
@@ -1664,6 +1789,7 @@
       const btn = el("openListsButton");
       if (btn) btn.style.display = isCurrentAdmin() ? "inline-flex" : "none";
       if (!isCurrentAdmin()) closeListsAdmin();
+      setUsersVisibility();
     }
 
     function openListsAdmin() {
@@ -2049,6 +2175,240 @@
       }
     }
 
+    function accessDocRef(uid) {
+      return db.collection("userAccess").doc(uid || currentUser.uid);
+    }
+
+    function normalizeEmail(value) {
+      return (value || "").trim().toLocaleLowerCase("de");
+    }
+
+    function getStatusLabel(status) {
+      if (status === "approved") return "freigegeben";
+      if (status === "blocked") return "gesperrt";
+      return "wartet";
+    }
+
+    function showAccessCard(status) {
+      const card = el("accessCard");
+      const msg = el("accessMessage");
+      if (!card || !msg) return;
+
+      if (status === "pending") {
+        msg.textContent = "Dein Konto wurde erstellt und wartet auf Freigabe.";
+      } else if (status === "blocked") {
+        msg.textContent = "Dieses Konto ist aktuell nicht freigegeben.";
+      } else {
+        msg.textContent = "Dein Konto kann aktuell nicht geprüft werden.";
+      }
+
+      card.style.display = "block";
+      el("appContent").classList.remove("visible");
+    }
+
+    function hideAccessCard() {
+      const card = el("accessCard");
+      if (card) card.style.display = "none";
+    }
+
+    async function ensureUserAccess() {
+      if (!currentUser) return "none";
+
+      const email = normalizeEmail(currentUser.email);
+      const ref = accessDocRef(currentUser.uid);
+      const now = new Date().toISOString();
+
+      if (isCurrentAdmin()) {
+        await ref.set({
+          uid: currentUser.uid,
+          email,
+          status: "approved",
+          role: "admin",
+          lastSeenAt: now,
+          approvedAt: now,
+          approvedBy: email
+        }, { merge: true });
+        return "approved";
+      }
+
+      const snapshot = await ref.get();
+
+      if (!snapshot.exists) {
+        await ref.set({
+          uid: currentUser.uid,
+          email,
+          status: "pending",
+          createdAt: now,
+          lastSeenAt: now
+        });
+        return "pending";
+      }
+
+      const data = snapshot.data() || {};
+      const status = data.status || "pending";
+
+      await ref.set({
+        uid: currentUser.uid,
+        email,
+        lastSeenAt: now
+      }, { merge: true });
+
+      return status;
+    }
+
+    function setUsersVisibility() {
+      const btn = el("openUsersButton");
+      if (!btn) return;
+      btn.style.display = isCurrentAdmin() ? "inline-flex" : "none";
+      updateUsersButtonLabel();
+      if (!isCurrentAdmin()) closeUsersAdmin();
+    }
+
+    function updateUsersButtonLabel() {
+      const btn = el("openUsersButton");
+      if (!btn || !isCurrentAdmin()) return;
+
+      const pendingCount = accessUsers.filter(user => user.status === "pending").length;
+      btn.innerHTML = pendingCount
+        ? 'Nutzer <span class="pending-count-dot">' + pendingCount + '</span>'
+        : "Nutzer";
+    }
+
+    function openUsersAdmin() {
+      if (!isCurrentAdmin()) return;
+      const overlay = el("userAccessOverlay");
+      if (!overlay) return;
+      overlay.classList.add("visible");
+      overlay.style.display = "flex";
+      document.body.style.overflow = "hidden";
+      renderUserAccessAdmin();
+    }
+
+    function closeUsersAdmin(event) {
+      if (event && event.target && event.target.id !== "userAccessOverlay") return;
+      const overlay = el("userAccessOverlay");
+      if (!overlay) return;
+      overlay.classList.remove("visible");
+      overlay.style.display = "none";
+      document.body.style.overflow = "";
+    }
+
+    function stopUserAccessSubscription() {
+      if (unsubscribeUserAccess) {
+        try { unsubscribeUserAccess(); } catch (e) {}
+        unsubscribeUserAccess = null;
+      }
+      accessUsers = [];
+      updateUsersButtonLabel();
+    }
+
+    function subscribeToUserAccess() {
+      stopUserAccessSubscription();
+      if (!isCurrentAdmin()) return;
+
+      unsubscribeUserAccess = db.collection("userAccess").onSnapshot(snapshot => {
+        accessUsers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+          .sort((a, b) => {
+            const aPending = a.status === "pending" ? 0 : 1;
+            const bPending = b.status === "pending" ? 0 : 1;
+            if (aPending !== bPending) return aPending - bPending;
+            return (a.email || "").localeCompare(b.email || "", "de", { sensitivity: "base" });
+          });
+
+        updateUsersButtonLabel();
+        renderUserAccessAdmin();
+      }, error => {
+        showMessage("syncNotice", "Nutzer konnten nicht geladen werden: " + error.message);
+      });
+    }
+
+    function renderUserAccessAdmin() {
+      const list = el("userAccessList");
+      if (!list) return;
+
+      list.innerHTML = "";
+
+      if (!isCurrentAdmin()) return;
+
+      if (!accessUsers.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Noch keine Nutzer.";
+        list.appendChild(empty);
+        return;
+      }
+
+      accessUsers.forEach(user => {
+        const row = document.createElement("div");
+        row.className = "user-access-item";
+
+        const email = document.createElement("div");
+        email.className = "user-access-email";
+        email.textContent = user.email || user.id;
+
+        const status = document.createElement("div");
+        const statusValue = user.status || "pending";
+        status.className = "user-access-status status-" + statusValue;
+        status.textContent = getStatusLabel(statusValue);
+
+        const meta = document.createElement("div");
+        meta.className = "user-access-meta";
+        meta.textContent = "Erstellt: " + (user.createdAt || "–") + " · Zuletzt: " + (user.lastSeenAt || "–");
+
+        const actions = document.createElement("div");
+        actions.className = "user-access-actions";
+
+        if (statusValue !== "approved") {
+          const approve = document.createElement("button");
+          approve.type = "button";
+          approve.className = "approve-user-btn";
+          approve.textContent = "Freigeben";
+          approve.onclick = () => setUserAccessStatus(user.id, "approved");
+          actions.appendChild(approve);
+        }
+
+        if (statusValue !== "blocked" && normalizeEmail(user.email) !== ADMIN_EMAIL.toLocaleLowerCase("de")) {
+          const block = document.createElement("button");
+          block.type = "button";
+          block.className = "block-user-btn";
+          block.textContent = "Sperren";
+          block.onclick = () => setUserAccessStatus(user.id, "blocked");
+          actions.appendChild(block);
+        }
+
+        row.appendChild(email);
+        row.appendChild(status);
+        row.appendChild(meta);
+        row.appendChild(actions);
+        list.appendChild(row);
+      });
+    }
+
+    async function setUserAccessStatus(uid, status) {
+      if (!isCurrentAdmin()) return;
+
+      const user = accessUsers.find(item => item.id === uid);
+      const email = user?.email || uid;
+
+      const question = status === "approved"
+        ? "Nutzer freigeben?\n\n" + email
+        : "Nutzer sperren?\n\n" + email;
+
+      if (!confirm(question)) return;
+
+      try {
+        await accessDocRef(uid).set({
+          status,
+          decidedAt: new Date().toISOString(),
+          decidedBy: currentUser.email || ""
+        }, { merge: true });
+
+        showMessage("userAccessNotice", status === "approved" ? "Nutzer wurde freigegeben." : "Nutzer wurde gesperrt.");
+      } catch (error) {
+        showMessage("userAccessNotice", "Nutzer konnte nicht geändert werden: " + error.message);
+      }
+    }
+
     function setupSuggestions() {
       // Die Vorschläge werden jetzt über den eigenen Auswahl-Dialog genutzt,
       // damit es auch auf iPhone/Home-Bildschirm zuverlässig funktioniert.
@@ -2265,7 +2625,7 @@
       }
       try {
         await auth.createUserWithEmailAndPassword(email, password);
-        showAuthMessage("Konto wurde erstellt.");
+        showAuthMessage("Konto wurde erstellt und wartet auf Freigabe.");
       } catch (error) {
         showAuthMessage("Konto konnte nicht erstellt werden: " + error.message);
       }
@@ -3019,7 +3379,7 @@
     applyFoodListCollapsedState();
     resetTransientFieldsOnStart();
 
-    auth.onAuthStateChanged(user => {
+    auth.onAuthStateChanged(async user => {
       currentUser = user || null;
 
       if (unsubscribeFoods) {
@@ -3027,24 +3387,52 @@
         unsubscribeFoods = null;
       }
       stopOptionsSubscription();
+      stopUserAccessSubscription();
 
       if (currentUser) {
         el("authCard").style.display = "none";
         el("userCard").style.display = "block";
-        el("appContent").classList.add("visible");
         el("userEmail").textContent = currentUser.email || "";
         setAdminVisibility();
+
+        let accessStatus = "pending";
+        try {
+          accessStatus = await ensureUserAccess();
+        } catch (error) {
+          showAccessCard("unknown");
+          showMessage("syncNotice", "Freigabe konnte nicht geprüft werden: " + error.message);
+          return;
+        }
+
+        currentAccessStatus = accessStatus;
+        setAdminVisibility();
+
+        if (accessStatus !== "approved") {
+          foodsLoading = false;
+          foods = [];
+          renderFoods();
+          resetTransientFieldsOnStart();
+          resetSuggestionOptionsToDefault();
+          showAccessCard(accessStatus);
+          return;
+        }
+
+        hideAccessCard();
+        el("appContent").classList.add("visible");
         subscribeToOptions();
         subscribeToFoods();
+        subscribeToUserAccess();
         setTimeout(runVersion49AutoMigration, 900);
         resetTransientFieldsOnStart();
       } else {
         foodsLoading = false;
         foods = [];
+        currentAccessStatus = "none";
         renderFoods();
         resetTransientFieldsOnStart();
         el("authCard").style.display = "block";
         el("userCard").style.display = "none";
+        hideAccessCard();
         el("appContent").classList.remove("visible");
         el("userEmail").textContent = "";
         resetSuggestionOptionsToDefault();
