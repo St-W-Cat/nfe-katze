@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: firebase-listen-admin-v41 -->
+  <!-- Version: listen-button-v42 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -224,6 +224,12 @@
     .chooser-actions {
       display: flex;
       justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chooser-save-new {
+      background: #fff0b8;
+      color: #b87900;
     }
     input:focus, textarea:focus {
       border-color: var(--accent);
@@ -602,6 +608,53 @@
       margin-top: 6px;
       user-select: none;
     }
+    .admin-options-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1800;
+      background: rgba(23, 32, 51, .38);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 16px;
+    }
+    .admin-options-overlay.visible {
+      display: flex !important;
+    }
+    .admin-options-card {
+      width: 100%;
+      max-width: 560px;
+      max-height: 86vh;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto auto auto auto auto 1fr;
+      margin: 0;
+    }
+    .admin-head {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+    }
+    .admin-head h2 {
+      margin: 0;
+    }
+    .admin-close {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 24px;
+      line-height: 1;
+      background: #ffe3e3;
+      color: var(--red);
+    }
     .admin-hint {
       text-align: center;
       color: var(--muted);
@@ -711,13 +764,20 @@
       color: var(--accent-dark);
       word-break: break-word;
     }
-    .logout-mini {
+    .logout-mini,
+    .lists-mini {
       padding: 7px 10px;
       border-radius: 999px;
-      background: #ffe3e3;
-      color: var(--red);
       font-size: 12px;
       font-weight: 800;
+    }
+    .logout-mini {
+      background: #ffe3e3;
+      color: var(--red);
+    }
+    .lists-mini {
+      background: #efe7ff;
+      color: var(--accent-dark);
     }
     .sync-note {
       color: var(--muted);
@@ -780,6 +840,7 @@
     <section id="userCard" class="user-mini" style="display:none">
       <div class="auth-status">
         <span class="auth-label">Angemeldet als <span id="userEmail" class="auth-email"></span></span>
+        <button id="openListsButton" class="lists-mini" onclick="openListsAdmin()" style="display:none">Listen</button>
         <button class="logout-mini" onclick="logoutAccount()">Abmelden</button>
       </div>
     </section>
@@ -870,6 +931,7 @@
           <div id="chooserList" class="chooser-list"></div>
           <div class="chooser-actions">
             <button type="button" class="secondary" onclick="useFreeChooserText()">Eingabe übernehmen</button>
+            <button id="chooserSaveNewButton" type="button" class="secondary chooser-save-new" onclick="saveChooserTextAsOption()" style="display:none">neu speichern</button>
           </div>
         </div>
       </div>
@@ -880,35 +942,40 @@
       <div id="notice" class="notice"></div>
     </section>
 
-    <section id="adminOptionsCard" class="card admin-options-card" style="display:none">
-      <h2>Listen bearbeiten</h2>
-      <div class="admin-hint">Nur Admin: Vorschlagslisten ändern, löschen oder korrigieren.</div>
-
-      <div class="admin-grid">
-        <div>
-          <label for="optionListSelect">Liste</label>
-          <select id="optionListSelect" class="admin-select" onchange="renderOptionsAdmin()">
-            <option value="brandOptions">Marken</option>
-            <option value="sortOptions">Sorten</option>
-            <option value="packagingOptions">Verpackungen</option>
-            <option value="weightOptions">Gewichte</option>
-            <option value="lifeAgeOptions">Lebensalter</option>
-          </select>
+    <div id="adminOptionsOverlay" class="admin-options-overlay" style="display:none" onclick="closeListsAdmin(event)">
+      <section id="adminOptionsCard" class="card admin-options-card" onclick="event.stopPropagation()">
+        <div class="admin-head">
+          <h2>Listen bearbeiten</h2>
+          <button type="button" class="admin-close" aria-label="Listen schließen" onclick="closeListsAdmin()">×</button>
         </div>
-        <div>
-          <label for="optionAdminSearch">Suchen</label>
-          <input id="optionAdminSearch" autocomplete="off" placeholder="Eintrag suchen">
+        <div class="admin-hint">Nur Admin: Vorschlagslisten ändern, löschen oder korrigieren.</div>
+
+        <div class="admin-grid">
+          <div>
+            <label for="optionListSelect">Liste</label>
+            <select id="optionListSelect" class="admin-select" onchange="renderOptionsAdmin()">
+              <option value="brandOptions">Marken</option>
+              <option value="sortOptions">Sorten</option>
+              <option value="packagingOptions">Verpackungen</option>
+              <option value="weightOptions">Gewichte</option>
+              <option value="lifeAgeOptions">Lebensalter</option>
+            </select>
+          </div>
+          <div>
+            <label for="optionAdminSearch">Suchen</label>
+            <input id="optionAdminSearch" autocomplete="off" placeholder="Eintrag suchen">
+          </div>
         </div>
-      </div>
 
-      <div class="admin-add-row">
-        <input id="optionNewValue" autocomplete="off" placeholder="Neuen Eintrag hinzufügen">
-        <button type="button" class="primary admin-add-btn" onclick="addOptionValueFromAdmin()">+</button>
-      </div>
+        <div class="admin-add-row">
+          <input id="optionNewValue" autocomplete="off" placeholder="Neuen Eintrag hinzufügen">
+          <button type="button" class="primary admin-add-btn" onclick="addOptionValueFromAdmin()">+</button>
+        </div>
 
-      <div id="optionNotice" class="notice"></div>
-      <div id="optionAdminList" class="option-admin-list"></div>
-    </section>
+        <div id="optionNotice" class="notice"></div>
+        <div id="optionAdminList" class="option-admin-list"></div>
+      </section>
+    </div>
 
     <section id="foodListSection" class="card">
       <div class="food-list-head">
@@ -940,7 +1007,7 @@
     </section>
 
     </div>
-    <div class="version-note">v41</div>
+    <div class="version-note">v42</div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1014,10 +1081,26 @@
     }
 
     function setAdminVisibility() {
-      const card = el("adminOptionsCard");
-      if (!card) return;
-      card.style.display = isCurrentAdmin() ? "block" : "none";
-      if (isCurrentAdmin()) renderOptionsAdmin();
+      const btn = el("openListsButton");
+      if (btn) btn.style.display = isCurrentAdmin() ? "inline-flex" : "none";
+      if (!isCurrentAdmin()) closeListsAdmin();
+    }
+
+    function openListsAdmin() {
+      if (!isCurrentAdmin()) return;
+      const overlay = el("adminOptionsOverlay");
+      if (!overlay) return;
+      overlay.classList.add("visible");
+      overlay.style.display = "flex";
+      renderOptionsAdmin();
+    }
+
+    function closeListsAdmin(event) {
+      if (event && event.target && event.target.id !== "adminOptionsOverlay") return;
+      const overlay = el("adminOptionsOverlay");
+      if (!overlay) return;
+      overlay.classList.remove("visible");
+      overlay.style.display = "none";
     }
 
     function resetSuggestionOptionsToDefault() {
@@ -1237,6 +1320,8 @@
 
       el("chooserTitle").textContent = title;
       el("chooserSearch").value = el(inputId).value || "";
+      const saveBtn = el("chooserSaveNewButton");
+      if (saveBtn) saveBtn.style.display = isCurrentAdmin() ? "inline-flex" : "none";
       el("chooserOverlay").classList.add("visible");
       renderChooserList();
       setTimeout(() => el("chooserSearch").focus(), 80);
@@ -1285,6 +1370,15 @@
       if (!chooserTargetInput || !value) return;
       el(chooserTargetInput).value = value;
       closeChooser();
+    }
+
+    async function saveChooserTextAsOption() {
+      const value = el("chooserSearch").value.trim();
+      if (!value || !chooserOptionsId) return;
+      const saved = await addOptionValue(chooserOptionsId, value, false);
+      if (saved && chooserTargetInput) {
+        el(chooserTargetInput).value = normalizeOptionValue(value);
+      }
     }
 
     function clearField(id) {
