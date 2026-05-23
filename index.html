@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version51-admin-fix -->
+  <!-- Version: version52-datenschutz -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -738,6 +738,59 @@
       margin-top: 6px;
       user-select: none;
     }
+    .footer-privacy-link,
+    .text-link {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--accent-dark);
+      padding: 0;
+      min-width: 0;
+      font: inherit;
+      font-weight: 900;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .privacy-register-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      margin: 10px 0 0;
+    }
+    .privacy-card {
+      width: 100%;
+      max-width: 620px;
+      height: calc(100dvh - 24px);
+      max-height: calc(100dvh - 24px);
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      margin: 0;
+    }
+    .privacy-content {
+      overflow: auto;
+      overscroll-behavior: contain;
+      padding: 4px 2px 8px;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .privacy-content h3 {
+      margin: 16px 0 6px;
+      font-size: 15px;
+      color: var(--accent-dark);
+    }
+    .privacy-content p {
+      margin: 0 0 10px;
+    }
+    .privacy-content ul {
+      margin: 0 0 10px 18px;
+      padding: 0;
+    }
+    .privacy-content li {
+      margin: 4px 0;
+    }
     .admin-options-overlay {
       position: fixed;
       inset: 0;
@@ -972,6 +1025,11 @@
         <button class="secondary small-action" onclick="resetPassword()">Passwort vergessen</button>
       </div>
       <div id="authNotice" class="notice"></div>
+      <div class="privacy-register-note">
+        Mit dem Erstellen eines Kontos bestätigst du, dass du die
+        <button type="button" class="text-link" onclick="openPrivacy()">Datenschutzhinweise</button>
+        gelesen hast.
+      </div>
       <div class="sync-note">Melde dich auf allen Geräten mit demselben Konto an, damit die Futter-Liste synchronisiert wird.</div>
     </section>
 
@@ -984,6 +1042,58 @@
       </div>
     </section>
     <div id="syncNotice" class="global-notice"></div>
+
+    <div id="privacyOverlay" class="admin-options-overlay" style="display:none" onclick="closePrivacy(event)">
+      <section id="privacyCard" class="card privacy-card" onclick="event.stopPropagation()">
+        <div class="admin-head">
+          <h2>Datenschutzhinweise</h2>
+          <button type="button" class="admin-close" aria-label="Datenschutz schließen" onclick="closePrivacy()">×</button>
+        </div>
+
+        <div class="privacy-content">
+          <p><strong>Verantwortlich:</strong><br>Stefanie Wroblewski</p>
+          <p><strong>Kontakt:</strong><br>info.stwcatnfe@gmail.com</p>
+
+          <h3>1. Worum geht es?</h3>
+          <p>Diese App dient dazu, Futterdaten für Katzen zu speichern, zu berechnen und zwischen Geräten zu synchronisieren. Damit die App genutzt werden kann, werden bestimmte Daten gespeichert und verarbeitet.</p>
+
+          <h3>2. Welche Daten werden gespeichert?</h3>
+          <p>Beim Erstellen und Nutzen eines Kontos können folgende Daten gespeichert werden:</p>
+          <ul>
+            <li>E-Mail-Adresse zur Anmeldung</li>
+            <li>technische Nutzer-ID</li>
+            <li>Freigabestatus des Kontos, zum Beispiel wartend, freigegeben oder gesperrt</li>
+            <li>Zeitpunkt der Registrierung und der letzten Nutzung</li>
+            <li>vom Nutzer gespeicherte Futtereinträge</li>
+            <li>Favoriten-Markierungen</li>
+            <li>allgemeine Vorschlagslisten wie Marken, Sorten, Verpackungen, Gewichte und Lebensalter</li>
+          </ul>
+
+          <h3>3. Wofür werden die Daten genutzt?</h3>
+          <p>Die Daten werden verwendet, damit Nutzer sich anmelden, ihre eigene Futterliste speichern, bearbeiten und zwischen Geräten synchronisieren können.</p>
+          <p>Die E-Mail-Adresse und der Freigabestatus werden genutzt, um den Zugang zur App zu verwalten und nicht freigegebene Nutzer auszuschließen.</p>
+
+          <h3>4. Wer kann die Daten sehen?</h3>
+          <p>Jeder Nutzer sieht nur seine eigenen gespeicherten Futterdaten.</p>
+          <p>Die verantwortliche Person beziehungsweise der Admin kann Nutzer freigeben oder sperren, zentrale Vorschlagslisten bearbeiten und technische Verwaltungsfunktionen ausführen.</p>
+
+          <h3>5. Technischer Dienstleister</h3>
+          <p>Die App nutzt Firebase/Google für Anmeldung, Nutzerverwaltung und Datenspeicherung. Firebase/Google verarbeitet Daten technisch zur Bereitstellung der App.</p>
+
+          <h3>6. Speicherdauer</h3>
+          <p>Die Daten bleiben gespeichert, solange das Nutzerkonto besteht oder bis eine Löschung gewünscht wird.</p>
+
+          <h3>7. Löschung und Auskunft</h3>
+          <p>Nutzer können über die oben genannte Kontaktadresse Auskunft über ihre gespeicherten Daten verlangen oder die Löschung ihres Kontos und ihrer gespeicherten Daten anfordern.</p>
+
+          <h3>8. Keine Weitergabe zu Werbezwecken</h3>
+          <p>Die gespeicherten Daten werden nicht zu Werbezwecken verkauft oder an Dritte weitergegeben.</p>
+
+          <h3>9. Hinweis</h3>
+          <p>Diese Datenschutzhinweise geben eine einfache Übersicht über die Datenverarbeitung in dieser App. Für eine rechtlich verbindliche Prüfung sollte bei Bedarf rechtlicher Rat eingeholt werden.</p>
+        </div>
+      </section>
+    </div>
 
     <section id="accessCard" class="card access-card" style="display:none">
       <h2>Konto wartet auf Freigabe</h2>
@@ -1169,7 +1279,7 @@
     </section>
 
     </div>
-    <div class="version-note">v51</div>
+    <div class="version-note">v52 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2412,6 +2522,23 @@
       } catch (error) {
         showMessage("userAccessNotice", "Nutzer konnte nicht geändert werden: " + error.message);
       }
+    }
+
+    function openPrivacy() {
+      const overlay = el("privacyOverlay");
+      if (!overlay) return;
+      overlay.classList.add("visible");
+      overlay.style.display = "flex";
+      document.body.style.overflow = "hidden";
+    }
+
+    function closePrivacy(event) {
+      if (event && event.target && event.target.id !== "privacyOverlay") return;
+      const overlay = el("privacyOverlay");
+      if (!overlay) return;
+      overlay.classList.remove("visible");
+      overlay.style.display = "none";
+      document.body.style.overflow = "";
     }
 
     function setupSuggestions() {
