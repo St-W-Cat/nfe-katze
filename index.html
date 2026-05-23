@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: listen-button-v42 -->
+  <!-- Version: version43 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -375,6 +375,35 @@
       text-align: center;
       width: 100%;
     }
+    .food-list-toggle {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      padding: 0;
+      border-radius: 12px;
+      background: #efe7ff;
+      color: var(--accent-dark);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .food-list-toggle svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform .18s ease;
+    }
+    .food-list-toggle.expanded svg {
+      transform: rotate(90deg);
+    }
     .download-icon-btn {
       position: absolute;
       right: 0;
@@ -481,6 +510,9 @@
     .filter-fav.active {
       background: #d99a00;
       color: #ffffff;
+    }
+    .food-items-content.collapsed {
+      display: none;
     }
     .saved-list { display: grid; gap: 12px; }
     .empty {
@@ -614,9 +646,11 @@
       z-index: 1800;
       background: rgba(23, 32, 51, .38);
       display: none;
-      align-items: flex-end;
+      align-items: stretch;
       justify-content: center;
-      padding: 16px;
+      padding: 12px;
+      overflow: hidden;
+      overscroll-behavior: contain;
     }
     .admin-options-overlay.visible {
       display: flex !important;
@@ -624,10 +658,11 @@
     .admin-options-card {
       width: 100%;
       max-width: 560px;
-      max-height: 86vh;
+      height: calc(100dvh - 24px);
+      max-height: calc(100dvh - 24px);
       overflow: hidden;
       display: grid;
-      grid-template-rows: auto auto auto auto auto 1fr;
+      grid-template-rows: auto auto auto auto 1fr;
       margin: 0;
     }
     .admin-head {
@@ -655,24 +690,21 @@
       background: #ffe3e3;
       color: var(--red);
     }
-    .admin-hint {
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-      margin: -4px 0 12px;
-      line-height: 1.35;
-    }
     .admin-grid {
       display: grid;
       grid-template-columns: 1fr;
       gap: 10px;
     }
-    .admin-select {
+    .admin-select,
+    #optionAdminSearch,
+    #optionNewValue {
       width: 100%;
       border: 1.5px solid var(--line);
       border-radius: 14px;
       padding: 11px 12px;
       font-size: 16px;
+      min-height: 42px;
+      line-height: 1.2;
       background: #fffdfb;
       color: var(--text);
       font-family: inherit;
@@ -697,10 +729,13 @@
     }
     .option-admin-list {
       display: grid;
+      align-content: start;
       gap: 7px;
-      max-height: 340px;
+      min-height: 0;
       overflow: auto;
+      overscroll-behavior: contain;
       padding-right: 2px;
+      padding-bottom: 8px;
     }
     .option-admin-item {
       display: grid;
@@ -948,8 +983,6 @@
           <h2>Listen bearbeiten</h2>
           <button type="button" class="admin-close" aria-label="Listen schließen" onclick="closeListsAdmin()">×</button>
         </div>
-        <div class="admin-hint">Nur Admin: Vorschlagslisten ändern, löschen oder korrigieren.</div>
-
         <div class="admin-grid">
           <div>
             <label for="optionListSelect">Liste</label>
@@ -979,6 +1012,11 @@
 
     <section id="foodListSection" class="card">
       <div class="food-list-head">
+        <button id="foodListToggle" type="button" class="food-list-toggle" aria-label="Futter einklappen" onclick="toggleFoodList()">
+          <svg id="foodListToggleIcon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 5l8 7-8 7"></path>
+          </svg>
+        </button>
         <h2>Futter-Liste</h2>
         <button type="button" class="download-icon-btn" aria-label="Excel herunterladen" onclick="downloadFoodList()">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1003,11 +1041,13 @@
         </div>
       </div>
 
-      <div id="savedList" class="saved-list"></div>
+      <div id="foodItemsContent" class="food-items-content">
+        <div id="savedList" class="saved-list"></div>
+      </div>
     </section>
 
     </div>
-    <div class="version-note">v42</div>
+    <div class="version-note">v43</div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1092,6 +1132,7 @@
       if (!overlay) return;
       overlay.classList.add("visible");
       overlay.style.display = "flex";
+      document.body.style.overflow = "hidden";
       renderOptionsAdmin();
     }
 
@@ -1101,6 +1142,7 @@
       if (!overlay) return;
       overlay.classList.remove("visible");
       overlay.style.display = "none";
+      document.body.style.overflow = "";
     }
 
     function resetSuggestionOptionsToDefault() {
@@ -1390,6 +1432,7 @@
 
     const storeKey = "nfe_cat_foods_pwa_v2";
     const lastValuesKey = "nfe_cat_last_values_pwa_v2";
+    const foodListCollapsedKey = "nfe_cat_food_items_collapsed_v1";
     let foods = [];
     let currentUser = null;
     let unsubscribeFoods = null;
@@ -1559,6 +1602,34 @@
       } catch (error) {
         showMessage("syncNotice", "Abmelden fehlgeschlagen: " + error.message);
       }
+    }
+
+    function setFoodListCollapsed(collapsed) {
+      const content = el("foodItemsContent");
+      const btn = el("foodListToggle");
+      if (!content || !btn) return;
+
+      content.classList.toggle("collapsed", collapsed);
+      btn.classList.toggle("expanded", !collapsed);
+      btn.setAttribute("aria-label", collapsed ? "Futter ausklappen" : "Futter einklappen");
+
+      try {
+        localStorage.setItem(foodListCollapsedKey, collapsed ? "1" : "0");
+      } catch (e) {}
+    }
+
+    function toggleFoodList() {
+      const content = el("foodItemsContent");
+      const collapsed = content ? content.classList.contains("collapsed") : false;
+      setFoodListCollapsed(!collapsed);
+    }
+
+    function applyFoodListCollapsedState() {
+      let collapsed = false;
+      try {
+        collapsed = localStorage.getItem(foodListCollapsedKey) === "1";
+      } catch (e) {}
+      setFoodListCollapsed(collapsed);
     }
 
     function getRating(nfeDry) {
@@ -2243,6 +2314,7 @@
     el("optionAdminSearch").addEventListener("input", renderOptionsAdmin);
     foodsLoading = true;
     renderFoods();
+    applyFoodListCollapsedState();
     resetTransientFieldsOnStart();
 
     auth.onAuthStateChanged(user => {
