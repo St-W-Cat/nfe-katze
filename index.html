@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version47 -->
+  <!-- Version: version49 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1047,7 +1047,7 @@
     </section>
 
     </div>
-    <div class="version-note">v47</div>
+    <div class="version-note">v49</div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1088,6 +1088,546 @@
       lifeAgeOptions: { docId: "lifeAges", title: "Lebensalter" }
     };
 
+    const version49ListChanges = [
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Atlantic cod"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Beauty"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Beef"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Chicken"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Duck"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Ente & Kaninchen"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Ente, Huhn & Karotten"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Ente, Pute & Fasan"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Ente, Truthahn & Lachs"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Fasan & Pute"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Fasan, Kabeljau & Huhn"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Fisch & Shrimps"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Forelle & Catnip"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Garnelen"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Geflügel Pur"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Herz & Leber"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Hirsch"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Huhn & Gans"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Huhn mit Spinat"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Huhn Pur"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Huhn Pur mit ganzen Herzen"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Huhn, Forelle & Möhren"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Huhn, Pute, Ente & Erbsen"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Hühnchen & Pute"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Hühnchenbrust & Kürbis"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Hühnchenbrust & Spargel"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Hühnchenbrust, Lachs, Zucchini & Karotten"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Hühnchenfilet, Hühnerleber & Brokkoli"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Kalb & Huhn"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Kalb & Hühnerherzen"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Kaninchen & Forelle"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Kaninchen & Huhn"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Krabben"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Lachs & Ente"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Lachs & Zucchini"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Lamb"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Lamm & Cranberries"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Lamm & Wild"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Lamm mit Geflügel & Kürbis"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Mobility"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Paté mit Huhn & Eiersoufflé"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Paté mit Kabeljau"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Paté mit Kalb"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Pferd mit Zucchini"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Pute & Kaninchen"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Pute & Wild"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Pute Pur"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Pute, Ente & Rind"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Pute, Huhn & Lachs"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Pute, Rind & Ente"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Reich an Ente"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Reich an Kaninchen"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Reich an Leber"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Reich an Rind"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Rentier"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Rind Pur & Kartoffeln"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Rind, Huhn & Gans"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Rind, Pute & Süßkartoffeln"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Rind, Wild & Süßkartoffel"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Rinderhack"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Saibling"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Salmon"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Scholle & Kabeljau"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Thunfisch & Erbsen"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Thunfisch & Karotte"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Thunfisch, Hühnchenfilet & Süßkartoffel"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Truthahn Pur"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Truthahn, Forelle & Cranberries"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Turkey"
+      },
+      {
+            "area": "Sorte",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Urinary"
+      },
+      {
+            "area": "Gewicht",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "40 g"
+      },
+      {
+            "area": "Gewicht",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "90 g"
+      },
+      {
+            "area": "Gewicht",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "370 g"
+      },
+      {
+            "area": "Marken",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Catessy Mousse"
+      },
+      {
+            "area": "Marken",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "MAC's Paw Power Smoothie"
+      },
+      {
+            "area": "Marken",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "MAC's Cat Pouchpack"
+      },
+      {
+            "area": "Marken",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Bozita Pate"
+      },
+      {
+            "area": "Marken",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Joe & Pepper Cat"
+      },
+      {
+            "area": "Marken",
+            "action": "hinzufügen",
+            "oldValue": "",
+            "newValue": "Betty`s Landhausküche"
+      },
+      {
+            "area": "Marken",
+            "action": "Auch gespeicherte Futter ändern",
+            "oldValue": "MAC's",
+            "newValue": "MAC's Cat"
+      },
+      {
+            "area": "Marken",
+            "action": "Auch gespeicherte Futter ändern",
+            "oldValue": "MAC's Feinschmeckermenü",
+            "newValue": "MAC's Cat Feinschmeckermenü"
+      },
+      {
+            "area": "Marken",
+            "action": "Auch gespeicherte Futter ändern",
+            "oldValue": "MAC's Monoprotein",
+            "newValue": "MAC's Cat Monoprotein"
+      },
+      {
+            "area": "Marken",
+            "action": "Auch gespeicherte Futter ändern",
+            "oldValue": "MAC's Vetcare",
+            "newValue": "MAC's Cat Vetcare"
+      },
+      {
+            "area": "Marken",
+            "action": "Auch gespeicherte Futter ändern",
+            "oldValue": "Leonardo extra Filet",
+            "newValue": "Leonardo Extra Filet"
+      },
+      {
+            "area": "Sorte",
+            "action": "Auch gespeicherte Futter ändern",
+            "oldValue": "Ente & Huhn & Karotten",
+            "newValue": "Ente, Huhn & Karotten"
+      },
+      {
+            "area": "Sorte",
+            "action": "Auch gespeicherte Futter ändern",
+            "oldValue": "Kalb pur",
+            "newValue": "Kalb Pur"
+      }
+];
+
+    const version49AreaMap = {
+      "marke": "brandOptions",
+      "marken": "brandOptions",
+      "sorte": "sortOptions",
+      "sorten": "sortOptions",
+      "verpackung": "packagingOptions",
+      "verpackungen": "packagingOptions",
+      "gewicht": "weightOptions",
+      "gewichte": "weightOptions",
+      "lebensalter": "lifeAgeOptions"
+    };
+
+    const version49FoodFields = {
+      brandOptions: "brand",
+      sortOptions: "sort",
+      packagingOptions: "packaging",
+      weightOptions: "weight",
+      lifeAgeOptions: "lifeAge"
+    };
+
+    let version49MigrationStarted = false;
     let unsubscribeOptions = [];
 
     function normalizeOptionValue(value) {
@@ -1336,6 +1876,178 @@
       if (saved) showMessage("optionNotice", "Eintrag wurde gelöscht.");
     }
 
+
+    async function getOptionValuesForMigration(key) {
+      const ref = optionDocRef(key);
+      if (!ref) return (suggestionOptions[key] || []).slice();
+
+      const snapshot = await ref.get();
+      if (snapshot.exists && Array.isArray(snapshot.data().values)) {
+        return snapshot.data().values.slice();
+      }
+
+      return (suggestionOptions[key] || defaultSuggestionOptions[key] || []).slice();
+    }
+
+    function buildVersion49Changes() {
+      const optionChanges = {};
+      const foodReplacements = [];
+
+      Object.keys(optionDocs).forEach(key => {
+        optionChanges[key] = (suggestionOptions[key] || defaultSuggestionOptions[key] || []).slice();
+      });
+
+      version49ListChanges.forEach(change => {
+        const areaKey = (change.area || "").toLocaleLowerCase("de");
+        const key = version49AreaMap[areaKey];
+        if (!key) return;
+
+        const action = (change.action || "").toLocaleLowerCase("de");
+        const oldValue = normalizeOptionValue(change.oldValue);
+        const newValue = normalizeOptionValue(change.newValue);
+        let values = optionChanges[key] || [];
+
+        if (action.includes("hinzuf")) {
+          if (newValue) values.push(newValue);
+        } else if (action.includes("lösch")) {
+          const deleteKey = (oldValue || newValue).toLocaleLowerCase("de");
+          if (deleteKey) {
+            values = values.filter(value => normalizeOptionValue(value).toLocaleLowerCase("de") !== deleteKey);
+          }
+        } else if (action.includes("änder")) {
+          const oldKey = oldValue.toLocaleLowerCase("de");
+          if (oldKey && newValue) {
+            let replaced = false;
+            values = values.map(value => {
+              if (normalizeOptionValue(value).toLocaleLowerCase("de") === oldKey) {
+                replaced = true;
+                return newValue;
+              }
+              return value;
+            });
+
+            if (!replaced && !values.some(value => normalizeOptionValue(value).toLocaleLowerCase("de") === newValue.toLocaleLowerCase("de"))) {
+              values.push(newValue);
+            }
+
+            if (action.includes("gespeic")) {
+              foodReplacements.push({ key, oldValue, newValue });
+            }
+          }
+        }
+
+        optionChanges[key] = sortOptionValues(values);
+      });
+
+      return { optionChanges, foodReplacements };
+    }
+
+    async function saveVersion49OptionValues(key, values) {
+      const ref = optionDocRef(key);
+      if (!ref) return;
+
+      const cleanValues = sortOptionValues(values);
+
+      await ref.set({
+        values: cleanValues,
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser.email || "",
+        source: "version49"
+      }, { merge: true });
+
+      suggestionOptions[key] = cleanValues;
+    }
+
+    async function updateAllFoodsForVersion49(foodReplacements) {
+      if (!foodReplacements.length || !isCurrentAdmin()) return 0;
+
+      const snapshot = await db.collectionGroup("foods").get();
+      if (snapshot.empty) return 0;
+
+      let changed = 0;
+      let batch = db.batch();
+      let batchCount = 0;
+
+      for (const doc of snapshot.docs) {
+        const data = doc.data() || {};
+        const updates = {};
+
+        foodReplacements.forEach(rep => {
+          const field = version49FoodFields[rep.key];
+          if (!field) return;
+
+          const currentValue = normalizeOptionValue(data[field]).toLocaleLowerCase("de");
+          const oldKey = normalizeOptionValue(rep.oldValue).toLocaleLowerCase("de");
+          const newValue = normalizeOptionValue(rep.newValue);
+
+          if (currentValue === oldKey && newValue) {
+            updates[field] = newValue;
+          }
+        });
+
+        if (!Object.keys(updates).length) continue;
+
+        batch.update(doc.ref, updates);
+        changed++;
+        batchCount++;
+
+        if (batchCount >= 450) {
+          await batch.commit();
+          batch = db.batch();
+          batchCount = 0;
+        }
+      }
+
+      if (batchCount > 0) {
+        await batch.commit();
+      }
+
+      return changed;
+    }
+
+    async function runVersion49AutoMigration() {
+      if (!isCurrentAdmin() || version49MigrationStarted) return;
+
+      version49MigrationStarted = true;
+
+      const migrationRef = db.collection("options").doc("_migrations");
+
+      try {
+        const migrationDoc = await migrationRef.get();
+        if (migrationDoc.exists && migrationDoc.data().version49Done === true) {
+          return;
+        }
+
+        showMessage("syncNotice", "Version49 wird übernommen …");
+
+        // Aktuelle Firebase-Listen laden, damit nichts überschrieben wird.
+        for (const key of Object.keys(optionDocs)) {
+          suggestionOptions[key] = sortOptionValues(await getOptionValuesForMigration(key));
+        }
+
+        const { optionChanges, foodReplacements } = buildVersion49Changes();
+
+        for (const key of Object.keys(optionChanges)) {
+          await saveVersion49OptionValues(key, optionChanges[key]);
+        }
+
+        const changedFoods = await updateAllFoodsForVersion49(foodReplacements);
+
+        await migrationRef.set({
+          version49Done: true,
+          version49DoneAt: new Date().toISOString(),
+          version49DoneBy: currentUser.email || "",
+          changedFoods
+        }, { merge: true });
+
+        renderOptionsAdmin();
+
+        showMessage("syncNotice", "Version49 übernommen. " + changedFoods + " gespeicherte Futter angepasst.");
+      } catch (error) {
+        version49MigrationStarted = false;
+        showMessage("syncNotice", "Version49 konnte nicht übernommen werden: " + error.message);
+      }
+    }
 
     function setupSuggestions() {
       // Die Vorschläge werden jetzt über den eigenen Auswahl-Dialog genutzt,
@@ -2324,6 +3036,7 @@
         setAdminVisibility();
         subscribeToOptions();
         subscribeToFoods();
+        setTimeout(runVersion49AutoMigration, 900);
         resetTransientFieldsOnStart();
       } else {
         foodsLoading = false;
