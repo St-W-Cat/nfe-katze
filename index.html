@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version44 -->
+  <!-- Version: version45 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1047,7 +1047,7 @@
     </section>
 
     </div>
-    <div class="version-note">v44</div>
+    <div class="version-note">v45</div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1316,15 +1316,22 @@
       const field = optionFoodFields[key];
       if (!field || !isCurrentAdmin()) return 0;
 
-      const snapshot = await db.collectionGroup("foods").where(field, "==", oldValue).get();
+      // Ohne where/orderBy, damit Firebase keine zusätzlichen Collection-Group-Indexe benötigt.
+      const snapshot = await db.collectionGroup("foods").get();
 
       if (snapshot.empty) return 0;
 
+      const oldKey = (oldValue || "").toLocaleLowerCase("de");
       let changed = 0;
       let batch = db.batch();
       let batchCount = 0;
 
       for (const doc of snapshot.docs) {
+        const data = doc.data() || {};
+        const currentValue = (data[field] || "").toLocaleLowerCase("de");
+
+        if (currentValue !== oldKey) continue;
+
         batch.update(doc.ref, { [field]: newValue });
         changed++;
         batchCount++;
