@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version53-listen-export -->
+  <!-- Version: version54-listen-export-position -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -883,6 +883,9 @@
       justify-content: center;
       margin: 8px 0 10px;
     }
+    .admin-download-row-top {
+      margin: 4px 0 12px;
+    }
     .admin-download-btn {
       font-size: 13px;
       padding: 9px 12px;
@@ -1216,7 +1219,12 @@
           <h2>Listen bearbeiten</h2>
           <button type="button" class="admin-close" aria-label="Listen schließen" onclick="closeListsAdmin()">×</button>
         </div>
-        <div class="admin-grid">
+        
+
+        <div class="admin-download-row admin-download-row-top">
+          <button type="button" class="secondary admin-download-btn" onclick="downloadSuggestionLists()">Listen herunterladen</button>
+        </div>
+<div class="admin-grid">
           <div>
             <label for="optionListSelect">Liste</label>
             <select id="optionListSelect" class="admin-select" onchange="renderOptionsAdmin()">
@@ -1237,11 +1245,6 @@
           <input id="optionNewValue" autocomplete="off" placeholder="Neuen Eintrag hinzufügen">
           <button type="button" class="primary admin-add-btn" onclick="addOptionValueFromAdmin()">+</button>
         </div>
-
-        <div class="admin-download-row">
-          <button type="button" class="secondary admin-download-btn" onclick="downloadSuggestionLists()">Listen herunterladen</button>
-        </div>
-
         <div id="optionNotice" class="notice"></div>
         <div id="optionAdminList" class="option-admin-list"></div>
       </section>
@@ -1296,7 +1299,7 @@
     </section>
 
     </div>
-    <div class="version-note">v53 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v54 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
