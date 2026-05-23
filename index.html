@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version50-zugang -->
+  <!-- Version: version51-admin-fix -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1169,7 +1169,7 @@
     </section>
 
     </div>
-    <div class="version-note">v50</div>
+    <div class="version-note">v51</div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2219,15 +2219,20 @@
       const now = new Date().toISOString();
 
       if (isCurrentAdmin()) {
-        await ref.set({
-          uid: currentUser.uid,
-          email,
-          status: "approved",
-          role: "admin",
-          lastSeenAt: now,
-          approvedAt: now,
-          approvedBy: email
-        }, { merge: true });
+        try {
+          await ref.set({
+            uid: currentUser.uid,
+            email,
+            status: "approved",
+            role: "admin",
+            lastSeenAt: now,
+            approvedAt: now,
+            approvedBy: email
+          }, { merge: true });
+        } catch (error) {
+          // Admin darf trotzdem hinein. Der Eintrag dient nur der Anzeige im Nutzer-Fenster.
+          console.warn("Admin-Freigabe-Eintrag konnte nicht geschrieben werden:", error);
+        }
         return "approved";
       }
 
