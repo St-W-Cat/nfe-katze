@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: favoriten-v40 -->
+  <!-- Version: firebase-listen-admin-v41 -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -602,6 +602,90 @@
       margin-top: 6px;
       user-select: none;
     }
+    .admin-hint {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin: -4px 0 12px;
+      line-height: 1.35;
+    }
+    .admin-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .admin-select {
+      width: 100%;
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+      padding: 11px 12px;
+      font-size: 16px;
+      background: #fffdfb;
+      color: var(--text);
+      font-family: inherit;
+    }
+    .admin-add-row {
+      display: grid;
+      grid-template-columns: 1fr 42px;
+      gap: 8px;
+      align-items: center;
+      margin: 10px 0;
+    }
+    .admin-add-btn {
+      width: 42px;
+      height: 42px;
+      min-width: 42px;
+      padding: 0;
+      border-radius: 14px;
+      font-size: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .option-admin-list {
+      display: grid;
+      gap: 7px;
+      max-height: 340px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+    .option-admin-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 7px;
+      align-items: center;
+      border: 1px solid var(--line);
+      background: #fffdfb;
+      border-radius: 14px;
+      padding: 8px;
+    }
+    .option-admin-text {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+    .option-admin-edit,
+    .option-admin-delete {
+      min-width: 0;
+      height: 34px;
+      padding: 0 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .option-admin-edit {
+      background: #efe7ff;
+      color: var(--accent-dark);
+    }
+    .option-admin-delete {
+      background: #ffe3e3;
+      color: var(--red);
+      font-size: 20px;
+      width: 34px;
+      padding: 0;
+      line-height: 1;
+    }
     .auth-card input {
       font-size: 18px;
     }
@@ -796,6 +880,36 @@
       <div id="notice" class="notice"></div>
     </section>
 
+    <section id="adminOptionsCard" class="card admin-options-card" style="display:none">
+      <h2>Listen bearbeiten</h2>
+      <div class="admin-hint">Nur Admin: Vorschlagslisten ändern, löschen oder korrigieren.</div>
+
+      <div class="admin-grid">
+        <div>
+          <label for="optionListSelect">Liste</label>
+          <select id="optionListSelect" class="admin-select" onchange="renderOptionsAdmin()">
+            <option value="brandOptions">Marken</option>
+            <option value="sortOptions">Sorten</option>
+            <option value="packagingOptions">Verpackungen</option>
+            <option value="weightOptions">Gewichte</option>
+            <option value="lifeAgeOptions">Lebensalter</option>
+          </select>
+        </div>
+        <div>
+          <label for="optionAdminSearch">Suchen</label>
+          <input id="optionAdminSearch" autocomplete="off" placeholder="Eintrag suchen">
+        </div>
+      </div>
+
+      <div class="admin-add-row">
+        <input id="optionNewValue" autocomplete="off" placeholder="Neuen Eintrag hinzufügen">
+        <button type="button" class="primary admin-add-btn" onclick="addOptionValueFromAdmin()">+</button>
+      </div>
+
+      <div id="optionNotice" class="notice"></div>
+      <div id="optionAdminList" class="option-admin-list"></div>
+    </section>
+
     <section id="foodListSection" class="card">
       <div class="food-list-head">
         <h2>Futter-Liste</h2>
@@ -826,7 +940,7 @@
     </section>
 
     </div>
-    <div class="version-note">v40</div>
+    <div class="version-note">v41</div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -848,6 +962,7 @@
     const db = firebase.firestore();
     auth.languageCode = "de";
 
+    const ADMIN_EMAIL = "wroblewski.stefanie@gmail.com";
 
     const suggestionOptions = {
       brandOptions: ["Affinity Advance", "Affinity Advance Feline", "Affinity Advance Veterinary Diets Cat", "Affinity Ultima", "Affinity Ultima Cat Expert Nutrition", "Affinity Ultima Delicious", "Affinity Ultima Delicious Mousse", "Affinity Ultima Nature", "Affinity Ultima Nature Paté", "Almo Nature", "Almo Nature Bio Organic", "Almo Nature Daily", "Almo Nature Daily Mousse", "Almo Nature Daily Stückchen in Gelee", "Almo Nature Daily Stückchen in Sauce", "Almo Nature Functional", "Almo Nature HFC", "Almo Nature HFC Complete", "Almo Nature HFC Jelly", "Almo Nature HFC Mousse", "ANIfit", "ANIfit Bio", "AniForte", "AniForte PureNature", "animonda Carny", "animonda Carny Country", "animonda Carny Ocean", "animonda Carny Pouch", "animonda Carny Single Protein", "animonda Integra Protect", "animonda vom Feinsten", "animonda vom Feinsten Feine Vielfalt", "animonda vom Feinsten in Gelee", "animonda vom Feinsten in Sauce", "animonda vom Feinsten Mildes Menü", "animonda vom Feinsten Milkies", "animonda vom Feinsten mit Schlemmerkern", "animonda vom Feinsten Mousse", "animonda vom Feinsten NoGrain", "animonda vom Feinsten Raffinesse in Gelee", "animonda vom Feinsten Raffinesse in Sauce", "Applaws", "Applaws Cat in Soße", "Applaws Cat Natural in Brühe", "Applaws Cat Pot", "Applaws in Brühe", "Applaws in Gelee", "Applaws Mousse", "Benek Super Chunks", "Benek Super Filets ins Soße", "Benek Super Gedämpfte Filets", "Benek Super Getreidefrei Chunks", "Benek Super Getreidefrei Gedämpfte Filets", "Benek Super Professional Line", "Best Nature", "Bozita", "Bozita Häppchen in Gelee", "Bozita Häppchen in Sauce", "Brit Care Cat", "Brit Care Cat Fillets in Gravy", "Brit Care Cat Fillets in Jelly", "Brit Premium By Nature", "Brit Vet Diet Cat Cans", "Brit Vet Diet Cat Soup", "Catessy Feine Pasteten", "Catessy Häppchen in Gelee", "Catessy Häppchen in Sauce", "Catit Cuisine Bites", "Catit Cuisine Creamy", "Catit Cuisine Dinner", "Catit Cuisine Divine Shreds", "Catit Cuisine Duet", "Catit Cuisine Eintöpfe", "Catit Cuisine Fillet", "Catit Cuisine Mousse", "Catit Cuisine Pastete", "Cat's Love", "Cat's Love Bio", "Catz finefood Classic", "Catz finefood Fillets", "Catz finefood Organic", "Catz finefood Pure", "Catz finefood Ragout", "Concept for Life", "Concept for Life All Cats", "Concept for Life Light", "Concept for Life Veterinary Diet", "Coshida Feine Pastete", "Coshida Pure Taste", "Coshida Selection", "Cosma Asia in Jelly", "Cosma Bowl", "Cosma Duo Layer", "Cosma Nature", "Cosma Original in Jelly", "Cosma Pure", "Cosma Soup", "Crave Fleischstreifen", "Crave Pastete", "Dein Bestes Augenschmaus", "Dein Bestes BBQ", "Dein Bestes Bio", "Dein Bestes Das Süppchen", "Dein Bestes Exquisit", "Dein Bestes Himmlisch Mousse", "Dein Bestes Hofladen", "Dein Bestes in Gellee", "Dein Bestes in Sauce", "Dein Bestes Naturverliebt", "Dein Bestes Omas Küchenklassiker", "Dein Bestes Pastete", "Dein Bestes Sensitive", "Dein Bestes Sternenküche", "Dogs´n Tiger Nassfutter", "Dogs´n Tiger Premium Nassfutter", "Edgard & Cooper Filets", "Edgard & Cooper Paté", "Edgard & Cooper Stückchen in Soße", "Farmina N&D Natural", "Farmina N&D Ocean", "Farmina N&D Prime", "Farmina N&D Pumpkin", "Farmina N&D Quinoa", "Farmina Vet Life", "Feline Finest", "Feline Porta 21", "Felix Doppelt Lecker", "Felix Naturally Delicious", "Felix Sensations Crunchy", "Felix Sensations Extras", "Felix Sensations Gelee", "Felix Sensations Sauce", "Felix So gut wie es aussieht Gelee", "Felix So gut wie es aussieht Sauce", "Felix Soup", "Felix Tasty Shreds", "Fellicita", "Feringa Bio Menüs", "Feringa Classic Meat Menüs", "Feringa Katzensuppe", "Feringa Single Meat", "Fit+Fun Jelly", "Fit+Fun Paté", "Fit+Fun Ragout", "Gourmet A la Carte", "Gourmet Gold Délicatesse en Sauce", "Gourmet Gold Feine Komposition", "Gourmet Gold Feine Pastete", "Gourmet Gold Raffiniertes Ragout", "Gourmet Gold Saftig-feine Streifen", "Gourmet Gold Zarte Häppchen in Sauce", "Gourmet Mon Petit Intense", "Gourmet Nature's Creations", "Gourmet Nature's Creations Mousse", "Gourmet Nature's Creations Soup", "Gourmet Perle Duetto", "Gourmet Perle Erlesene Streifen", "Gourmet Perle Genuss in Gelee", "Gourmet Perle Genuss in Sauce", "Gourmet Revelations Feine Häppchen", "Gourmet Revelations Mousse", "GranataPet Delicatessen", "GranataPet Filet à la carte", "GranataPet Suppenkasper", "GranataPet Symphonie", "Green Petfood FairCat", "Green Petfood FairCat Balance", "Green Petfood FairCat Care", "Green Petfood FairCat Fit", "Green Petfood FairCat Sensitive", "Green Petfood Paté", "Greenwoods Delight", "Greenwoods Joy", "Happy Cat Bio", "Happy Cat Meat in Sauce", "Happy Cat Minkas Duo", "Happy Cat Snack Soup", "Happy Cat VET Diät", "Herrmann's Manufaktur Kreativ-Mix", "Herrmann's Manufaktur Reinfleisch", "Herrmann's Manufaktur Selection", "Hill's Prescription", "Hill's Science Plan", "Hill's Vet Essentials", "IAMS Advanced Nutrition", "IAMS Delights", "IAMS Naturally", "Ja Feine Häppchen", "Ja Feine Pasteten", "Ja Genießer-Menü", "Ja Herzhafte Stückchen", "Ja Herzhaftes Ragout", "Ja Saftige Pastete", "Ja Zarte Stückchen in feiner Sauce", "Josera Filet", "Josera Josicat", "Josera Josicat Finest", "Josera Josicat Paté", "Josera Josicat Rich", "Josera Nassfutter", "Josera Paté", "Josera Soup", "Kattovit Feline Diet", "Kattovit Feline Drink", "Kattovit Vital Care", "Kitty Cat Filet in Paté", "Kitty Cat Paté", "Leonardo Drinks", "Leonardo extra Filet", "Leonardo Finest Selection", "Leonardo Pulled Beef", "Leonardo Quality Selection", "Leonardo Superior Selection", "Liebesgut Bio", "Liebesgut Sensitiv", "Life Cat Natural", "Life Cat Natural Mousse", "Life Cat Natural Soup", "Lifecat Le Ricette", "Lifecat Natural Trancetti", "Lifecat Pouch", "Lily's Kitchen Shredded Fillets", "Lily's Kitchen Smooth Paté", "Lily's Kitchen Spooky Paté", "Lily's Kitchen Tasty Cuts", "Lucky Lou Extra Food", "Lucky Lou Food Code", "Lucky Lou Lifestage", "Lucky Lou Mäusle", "Lucky Lou SuperMono", "Lucky-Kitty", "Lyra Pet Lecker.Pet Balu´s", "Lyra Pet Lecker.Pet Emily´s", "Lyra Pet Lecker.Pet Leo´s", "Lyra Pet Lecker.Pet Mia´s", "Lyra Pet Lecker.Pet Surf'n'Turf", "MAC's", "MAC's Feinschmeckermenü", "MAC's Monoprotein", "MAC's Paw Power Drink", "MAC's Vetcare", "Miamor Cat Cream", "Miamor Feine Beute", "Miamor Feine Filets in Jelly", "Miamor Feine Filets in Sauce", "Miamor Feine Filets Mini", "Miamor Feine Filets naturelle", "Miamor Feines & Filet", "Miamor Milde Mahlzeit", "Miamor Pastete", "Miamor Pâté & Filet", "Miamor Ragout Royale in Gelee", "Miamor Ragout Royale in Sauce", "Miamor Sensible Snack", "Miamor Trinkfein", "MjAMjAM", "MjAMjAM an Soße", "MjAMjAM Bio", "MjAMjAM Chicks & Friends", "MjAMjAM Duett", "MjAMjAM Insekt", "MjAMjAM Monoprotein", "MjAMjAM Purer Filetgenuss", "MjAMjAM Purer Fleischgenuss", "MjAMjAM VetCat", "MjAMjAM Wellness", "Moments", "Moments Diamond", "Moments Selection", "Moments Suppe", "Moments Topping", "MultiFit", "MultiFit Care", "MultiFit Classic", "MultiFit It's Me Elvis", "MultiFit Jelly", "MultiFit Mini", "MultiFit Sauce", "MultiFit Simply Good", "MultiFit Special Jelly", "MultiFit Tasty Duo", "Natural Trainer", "Natural Trainer Paté", "Natural Trainer Straccetti", "Natural Trainer Straccetti Difficult Appetite", "Nature's Variety Bites", "Nature's Variety Pâté", "Pawsome", "Pawsome light", "Perfect Fit", "Perfect Fit Indoor", "Perfect Fit Natural Vitality", "Perfect Fit Sensitive", "Pets Deli Filet Menü", "Pets Deli Filet Menü Beauty", "Pets Deli Hypo Care Filet Menü", "Pets Deli Juicy Filets", "Pets Deli Meaty Pâté", "Pets Deli Pure Meat", "Pets Deli Pure Meat Belly", "Pets Deli Pure Meat Hypo Care", "Pets Deli Pure Meat Immunity", "Pets Deli Pure Meat Yummy", "Pets Deli Saucen Menü", "Pets Deli Vet", "Porta 21 Superfood", "Premiere cats love nature", "Premiere Deluxe Ragout", "Premiere Fine Filets", "Premiere Finest Gelee", "Premiere Gelee", "Premiere Meat Menu", "Premiere Pure Pâté", "Premiere Royal Ragout", "Premiere Soft Mousse", "Premiere Tender Stripes", "Pure Nature", "Purina Cat Chow in Gelee", "Purina Cat Chow in Sauce", "Purina ONE", "Purina ONE Coat & Hairball", "Purina ONE Indoor", "Purina ONE Sensitive", "Purina Pro Plan", "Purina Pro Plan Delicate", "Purina Pro Plan Feline FortiFlora", "Purina Pro Plan HC Hydra Care", "Purina Pro Plan Veterinary Diets", "Purizon Chicken Fillet", "Purizon Organic", "Purizon Single Meat", "Purizon Superfoods", "Real Nature Original", "Real Nature Original Filet & Mousse", "Real Nature Wilderness Adult", "Real Nature Wilderness Kitten", "Real Nature Wilderness Senior", "REAVET Feine Menues", "Royal Canin", "Royal Canin Ageing", "Royal Canin Appetite Control Airlift", "Royal Canin Appetite Control Care", "Royal Canin British Shorthair Adult", "Royal Canin Digestive Care", "Royal Canin Hair & Skin", "Royal Canin Indoor", "Royal Canin Instinctive", "Royal Canin Kitten", "Royal Canin Light Weight Care", "Royal Canin Maine Coon Adult", "Royal Canin Persian Adult", "Royal Canin Sensory Feel", "Royal Canin Sensory Smell", "Royal Canin Sensory Smell Taste Feel", "Royal Canin Sensory Taste", "Royal Canin Urinary Care", "Royal Canin Veterinary", "Sanabelle", "Sanabelle All Meat Pastete", "Sanabelle Filets in Soße", "Sanabelle Freshe Mieze", "Sanabelle Heimat", "Schesir After Dark", "Schesir Cat Soup", "Schesir Complements", "Schesir Complete Nutrition", "Schesir Kitten", "Schesir Mousse", "Schmusy Nature", "Schmusy Ragout in Gelee", "Schmusy Ragout in Sauce", "Select Gold", "Select Gold Acceptance", "Select Gold Acceptance Adult", "Select Gold Classic Fit", "Select Gold Digestion", "Select Gold Hair & Skin", "Select Gold Indoor", "Select Gold Light", "Select Gold Medica", "Select Gold Outdoor", "Select Gold Pure", "Select Gold Sensitive Monoprotein", "Select Gold Urinary", "Smilla", "Smilla Deluxe Häppchen in Gelee", "Smilla Deluxe Häppchen in Sauce", "Smilla Deluxe Mousse", "Smilla Essentials Häppchen in Gelee", "Smilla Essentials Häppchen in Sauce", "Smilla Fine Menu", "Smilla Indoor", "Smilla Katzendrink", "Smilla light", "Smilla Töpfchen", "Smilla Veterinary Diet", "STRAYZ Bio Futter", "STRAYZ Bio in Sauce", "Taste of the Wild", "Terra Felis", "Terra Felis Famousse", "Terra Felis Soupreme", "The Better Cat Monoprotein", "The Better Cat Pur", "The Better Cat Suppe", "Tundra Cat", "Vitakraft Drink", "Vitakraft Liquid Snack", "Vitakraft Poésie Classique in Gelee", "Vitakraft Poésie Classique in Sauce", "Vitakraft Poésie Création in Gelee", "Vitakraft Poésie Création in Sauce", "Vitakraft Poésie Délice", "Vitakraft Poésie Délice Plus", "Vitakraft Poésie Mousse", "Wild Freedom", "Wild Freedom Instinctive", "Wild Freedom Triple Taste", "Wildes Land Bio", "Wildes Land Classic", "Wildes Land Filet", "Wildes Land PUR", "Wildes Land Ragout", "Wildes Land Soup", "Winston Bio", "Winston Deluxe", "Winston Feine Häppchen", "Winston Feine Mahlzeit in Gelee", "Winston Feine Mahlzeit in Sauce", "Winston Feine Paté", "Winston Gourmet Filets", "Winston Gourmet Ragout", "Winston Menü", "Winston Menüs", "Winston Nature", "Winston Pastete", "Winston Saftige Häppchen", "Winston Schlemmer-Menü", "Winston Sensitiv-Menü", "Winston Wellness-Menü", "WOW Cat Filet", "WOW Cat Paté", "WOW Cat Samtige Mousse", "WOW Cat Saucen-Menü", "WOW Cat Suppe", "Yarrah Bio Bröckchen", "Yarrah Bio Filets", "Yarrah Bio Pastete", "ZooRoyal", "ZooRoyal All Meat", "ZooRoyal Bio Pastete", "ZooRoyal Delikate Stückchen", "ZooRoyal Feine Paté", "ZooRoyal Genuss Pastete", "ZooRoyal Gourmet Leckerbissen", "ZooRoyal Gourmet Menü in Gelee", "ZooRoyal Grill Menü in Sauce", "ZooRoyal Minkas", "ZooRoyal Minkas Naturkost", "ZooRoyal Monoprotein Pastete", "ZooRoyal Mousse", "ZooRoyal Pastete", "ZooRoyal Zarte Hünchenfilets"],
@@ -856,6 +971,256 @@
       weightOptions: ["50 g", "70 g", "80 g", "85 g", "95 g", "100 g", "125 g", "135 g", "150 g", "156 g", "185 g", "190 g", "195 g", "200 g", "300 g", "400 g", "800 g"],
       lifeAgeOptions: ["Adult", "Junior", "Kitten", "Senior", "Sensitive", "Sterilised", "Young"]
     };
+    const defaultSuggestionOptions = JSON.parse(JSON.stringify(suggestionOptions));
+
+    const optionDocs = {
+      brandOptions: { docId: "brands", title: "Marken" },
+      sortOptions: { docId: "sorts", title: "Sorten" },
+      packagingOptions: { docId: "packaging", title: "Verpackungen" },
+      weightOptions: { docId: "weights", title: "Gewichte" },
+      lifeAgeOptions: { docId: "lifeAges", title: "Lebensalter" }
+    };
+
+    let unsubscribeOptions = [];
+
+    function normalizeOptionValue(value) {
+      return (value || "").trim().replace(/\s+/g, " ");
+    }
+
+    function sortOptionValues(values) {
+      const seen = new Set();
+      const result = [];
+
+      (values || []).forEach(value => {
+        const clean = normalizeOptionValue(value);
+        const key = clean.toLocaleLowerCase("de");
+        if (clean && !seen.has(key)) {
+          seen.add(key);
+          result.push(clean);
+        }
+      });
+
+      return result.sort((a, b) => a.localeCompare(b, "de", { sensitivity: "base", numeric: true }));
+    }
+
+    function optionDocRef(key) {
+      const config = optionDocs[key];
+      if (!config) return null;
+      return db.collection("options").doc(config.docId);
+    }
+
+    function isCurrentAdmin() {
+      return !!currentUser && (currentUser.email || "").toLocaleLowerCase("de") === ADMIN_EMAIL.toLocaleLowerCase("de");
+    }
+
+    function setAdminVisibility() {
+      const card = el("adminOptionsCard");
+      if (!card) return;
+      card.style.display = isCurrentAdmin() ? "block" : "none";
+      if (isCurrentAdmin()) renderOptionsAdmin();
+    }
+
+    function resetSuggestionOptionsToDefault() {
+      Object.keys(defaultSuggestionOptions).forEach(key => {
+        suggestionOptions[key] = defaultSuggestionOptions[key].slice();
+      });
+    }
+
+    function stopOptionsSubscription() {
+      unsubscribeOptions.forEach(unsub => {
+        try { unsub(); } catch (e) {}
+      });
+      unsubscribeOptions = [];
+    }
+
+    function subscribeToOptions() {
+      stopOptionsSubscription();
+
+      Object.entries(optionDocs).forEach(([key, config]) => {
+        const ref = optionDocRef(key);
+        if (!ref) return;
+
+        const unsub = ref.onSnapshot(async snapshot => {
+          if (snapshot.exists && Array.isArray(snapshot.data().values)) {
+            suggestionOptions[key] = sortOptionValues(snapshot.data().values);
+          } else {
+            suggestionOptions[key] = defaultSuggestionOptions[key].slice();
+
+            if (isCurrentAdmin()) {
+              try {
+                await ref.set({
+                  values: suggestionOptions[key],
+                  updatedAt: new Date().toISOString(),
+                  updatedBy: currentUser.email || ""
+                }, { merge: true });
+              } catch (error) {
+                showMessage("optionNotice", "Liste konnte nicht angelegt werden: " + error.message);
+              }
+            }
+          }
+
+          if (chooserOptionsId === key) {
+            chooserValues = suggestionOptions[key] || [];
+            renderChooserList();
+          }
+
+          renderOptionsAdmin();
+        }, error => {
+          showMessage("syncNotice", "Vorschlagslisten konnten nicht geladen werden: " + error.message);
+        });
+
+        unsubscribeOptions.push(unsub);
+      });
+    }
+
+    async function saveOptionValues(key, values) {
+      if (!isCurrentAdmin()) {
+        showMessage("optionNotice", "Nur Admin darf Listen bearbeiten.");
+        return false;
+      }
+
+      const ref = optionDocRef(key);
+      if (!ref) return false;
+
+      const cleanValues = sortOptionValues(values);
+
+      try {
+        await ref.set({
+          values: cleanValues,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentUser.email || ""
+        }, { merge: true });
+
+        suggestionOptions[key] = cleanValues;
+        renderOptionsAdmin();
+        return true;
+      } catch (error) {
+        showMessage("optionNotice", "Liste konnte nicht gespeichert werden: " + error.message);
+        return false;
+      }
+    }
+
+    async function addOptionValue(key, value, quiet) {
+      const clean = normalizeOptionValue(value);
+      if (!clean || !isCurrentAdmin()) return false;
+
+      const current = suggestionOptions[key] || [];
+      const exists = current.some(item => item.toLocaleLowerCase("de") === clean.toLocaleLowerCase("de"));
+      if (exists) {
+        if (!quiet) showMessage("optionNotice", "Eintrag ist schon vorhanden.");
+        return false;
+      }
+
+      const saved = await saveOptionValues(key, [...current, clean]);
+      if (saved && !quiet) {
+        showMessage("optionNotice", "Eintrag wurde hinzugefügt.");
+        el("optionNewValue").value = "";
+      }
+      return saved;
+    }
+
+    function getSelectedOptionKey() {
+      const select = el("optionListSelect");
+      return select ? select.value : "brandOptions";
+    }
+
+    function renderOptionsAdmin() {
+      const list = el("optionAdminList");
+      if (!list) return;
+
+      list.innerHTML = "";
+
+      if (!isCurrentAdmin()) return;
+
+      const key = getSelectedOptionKey();
+      const q = (el("optionAdminSearch")?.value || "").trim().toLocaleLowerCase("de");
+      const values = (suggestionOptions[key] || []).filter(value => !q || value.toLocaleLowerCase("de").includes(q));
+
+      if (!values.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Keine Einträge gefunden.";
+        list.appendChild(empty);
+        return;
+      }
+
+      values.forEach(value => {
+        const row = document.createElement("div");
+        row.className = "option-admin-item";
+
+        const text = document.createElement("div");
+        text.className = "option-admin-text";
+        text.textContent = value;
+
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.className = "option-admin-edit";
+        edit.textContent = "ändern";
+        edit.onclick = () => editOptionValue(key, value);
+
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "option-admin-delete";
+        del.textContent = "×";
+        del.setAttribute("aria-label", "Eintrag löschen");
+        del.onclick = () => deleteOptionValue(key, value);
+
+        row.appendChild(text);
+        row.appendChild(edit);
+        row.appendChild(del);
+        list.appendChild(row);
+      });
+    }
+
+    async function addOptionValueFromAdmin() {
+      const key = getSelectedOptionKey();
+      const input = el("optionNewValue");
+      const value = input.value;
+      await addOptionValue(key, value, false);
+    }
+
+    async function editOptionValue(key, oldValue) {
+      const nextValue = prompt("Eintrag korrigieren:", oldValue);
+      if (nextValue === null) return;
+
+      const clean = normalizeOptionValue(nextValue);
+      if (!clean) return;
+
+      const current = suggestionOptions[key] || [];
+      const oldKey = oldValue.toLocaleLowerCase("de");
+      const nextKey = clean.toLocaleLowerCase("de");
+
+      if (oldKey !== nextKey && current.some(item => item.toLocaleLowerCase("de") === nextKey)) {
+        alert("Dieser Eintrag ist bereits vorhanden.");
+        return;
+      }
+
+      const next = current.map(item => item.toLocaleLowerCase("de") === oldKey ? clean : item);
+      const saved = await saveOptionValues(key, next);
+      if (saved) showMessage("optionNotice", "Eintrag wurde geändert.");
+    }
+
+    async function deleteOptionValue(key, value) {
+      if (!confirm("Eintrag löschen?")) return;
+
+      const current = suggestionOptions[key] || [];
+      const deleteKey = value.toLocaleLowerCase("de");
+      const next = current.filter(item => item.toLocaleLowerCase("de") !== deleteKey);
+
+      const saved = await saveOptionValues(key, next);
+      if (saved) showMessage("optionNotice", "Eintrag wurde gelöscht.");
+    }
+
+    async function rememberOptionsFromFood(item) {
+      if (!isCurrentAdmin()) return;
+
+      await addOptionValue("brandOptions", item.brand, true);
+      await addOptionValue("sortOptions", item.sort, true);
+      await addOptionValue("packagingOptions", item.packaging, true);
+      await addOptionValue("weightOptions", item.weight, true);
+      await addOptionValue("lifeAgeOptions", item.lifeAge, true);
+    }
+
     function setupSuggestions() {
       // Die Vorschläge werden jetzt über den eigenen Auswahl-Dialog genutzt,
       // damit es auch auf iPhone/Home-Bildschirm zuverlässig funktioniert.
@@ -868,7 +1233,7 @@
     function openChooser(inputId, optionsId, title) {
       chooserTargetInput = inputId;
       chooserOptionsId = optionsId;
-      chooserValues = suggestionOptions[optionsId] || [];
+      chooserValues = sortOptionValues(suggestionOptions[optionsId] || []);
 
       el("chooserTitle").textContent = title;
       el("chooserSearch").value = el(inputId).value || "";
@@ -1277,6 +1642,7 @@
       try {
         const collection = userFoodsCollection();
         await collection.doc(item.id).set(item);
+        await rememberOptionsFromFood(item);
         clearAfterSave(forceNew ? "Neues Futter gespeichert & synchronisiert." : (wasEditing ? "Änderung gespeichert & synchronisiert." : "Futter gespeichert & synchronisiert."));
       } catch (error) {
         showMessage("notice", "Futter konnte nicht gespeichert werden: " + error.message);
@@ -1780,6 +2146,7 @@
       if (activeFoodFilter !== "all") setFoodFilter("all");
       else renderFoods();
     });
+    el("optionAdminSearch").addEventListener("input", renderOptionsAdmin);
     foodsLoading = true;
     renderFoods();
     resetTransientFieldsOnStart();
@@ -1791,12 +2158,15 @@
         unsubscribeFoods();
         unsubscribeFoods = null;
       }
+      stopOptionsSubscription();
 
       if (currentUser) {
         el("authCard").style.display = "none";
         el("userCard").style.display = "block";
         el("appContent").classList.add("visible");
         el("userEmail").textContent = currentUser.email || "";
+        setAdminVisibility();
+        subscribeToOptions();
         subscribeToFoods();
         resetTransientFieldsOnStart();
       } else {
@@ -1808,6 +2178,8 @@
         el("userCard").style.display = "none";
         el("appContent").classList.remove("visible");
         el("userEmail").textContent = "";
+        resetSuggestionOptionsToDefault();
+        setAdminVisibility();
       }
     });
 
