@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version75-freigabe-entfernt-vorschlag -->
+  <!-- Version: version77-stabil-plus-loeschen -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1532,7 +1532,7 @@
     </section>
 
     </div>
-    <div class="version-note">v75 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v77 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2126,12 +2126,11 @@
     let unsubscribeFoodPool = null;
     let unsubscribePoolFavorites = null;
     let unsubscribePoolSuggestions = null;
-    let unsubscribeDeletedPoolSuggestions = null;
     let accessUsers = [];
     let poolFoods = [];
     let poolFavoriteIds = new Set();
     let poolSuggestions = [];
-    let deletedPoolSuggestionIds = new Set(loadLocalDeletedPoolSuggestionIds());
+    let hiddenPoolSuggestionIds = new Set(loadHiddenPoolSuggestionIds());
     let poolFoodsLoading = true;
     let poolFavoritesLoading = true;
     let adminPoolSyncRunning = false;
@@ -2844,18 +2843,11 @@
       return "food";
     }
 
-    function isOpenPoolSuggestion(item) {
-      if (!item || deletedPoolSuggestionIds.has(item.id)) return false;
-      const status = String(item.status || "pending").toLocaleLowerCase("de");
-      return status === "pending"
-        && !item.approvedAt
-        && !item.rejectedAt
-        && !item.removedAt
-        && !item.deletedAt;
-    }
-
     function getPendingPoolSuggestions() {
-      return poolSuggestions.filter(isOpenPoolSuggestion);
+      return poolSuggestions.filter(item => {
+        if (!item || hiddenPoolSuggestionIds.has(item.id)) return false;
+        return (item.status || "pending") === "pending";
+      });
     }
 
     function getFilteredPoolSuggestions() {
@@ -3151,47 +3143,6 @@
       });
     }
 
-    async function finishPoolSuggestionAfterApproval(id) {
-      const now = new Date().toISOString();
-
-      // Sofort lokal ausblenden.
-      rememberLocalDeletedPoolSuggestionId(id);
-      poolSuggestions = poolSuggestions.filter(entry => entry.id !== id);
-      updatePoolSuggestionsButtonLabel();
-      renderPoolSuggestionsAdmin();
-
-      // Zusätzlich in Firebase-Sperrliste eintragen.
-      try {
-        await deletedPoolSuggestionsCollection().doc(id).set({
-          suggestionId: id,
-          deletedAt: now,
-          deletedBy: currentUser.email || "",
-          reason: "approved"
-        }, { merge: true });
-      } catch (error) {
-        console.warn("Sperrliste konnte nicht geschrieben werden:", error);
-      }
-
-      // Zusätzlich Original-Vorschlag als erledigt markieren.
-      try {
-        await poolSuggestionsCollection().doc(id).set({
-          status: "approved",
-          approvedAt: now,
-          approvedBy: currentUser.email || "",
-          removedAt: now
-        }, { merge: true });
-      } catch (error) {
-        console.warn("Vorschlag konnte nicht als erledigt markiert werden:", error);
-      }
-
-      // Und wenn möglich endgültig löschen.
-      try {
-        await poolSuggestionsCollection().doc(id).delete();
-      } catch (error) {
-        console.warn("Vorschlag konnte nicht direkt gelöscht werden:", error);
-      }
-    }
-
     async function approvePoolSuggestion(id) {
       if (!isCurrentAdmin()) return;
 
@@ -3216,9 +3167,8 @@
             optionSaved: !!saved
           }, { merge: true });
 
-          await finishPoolSuggestionAfterApproval(id);
-
-          showMessage("poolSuggestionsNotice", saved ? "Listeneintrag wurde gespeichert und aus den Vorschlägen entfernt." : "Listeneintrag war bereits vorhanden und wurde aus den Vorschlägen entfernt.");
+          hidePoolSuggestionLocally(id);
+          showMessage("poolSuggestionsNotice", saved ? "Listeneintrag wurde gespeichert." : "Listeneintrag war bereits vorhanden.");
           return;
         }
 
@@ -3251,9 +3201,8 @@
             adminFoodId: targetId
           }, { merge: true });
 
-          await finishPoolSuggestionAfterApproval(id);
-
-          showMessage("poolSuggestionsNotice", "Änderung wurde freigegeben und aus den Vorschlägen entfernt.");
+          hidePoolSuggestionLocally(id);
+          showMessage("poolSuggestionsNotice", "Änderung wurde freigegeben und in deiner Admin-Futterliste übernommen.");
           return;
         }
 
@@ -3282,9 +3231,8 @@
           adminFoodId: foodId
         }, { merge: true });
 
-        await finishPoolSuggestionAfterApproval(id);
-
-        showMessage("poolSuggestionsNotice", "Vorschlag wurde freigegeben und aus den Vorschlägen entfernt.");
+        hidePoolSuggestionLocally(id);
+        showMessage("poolSuggestionsNotice", "Vorschlag wurde freigegeben und in deine Admin-Futterliste übernommen.");
       } catch (error) {
         showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht freigegeben werden: " + error.message);
       }
@@ -3294,40 +3242,18 @@
       if (!isCurrentAdmin()) return;
 
       const item = poolSuggestions.find(s => s.id === id);
-      if (!item && deletedPoolSuggestionIds.has(id)) return;
+      if (!item && hiddenPoolSuggestionIds.has(id)) return;
 
       if (!confirm("Vorschlag wirklich löschen?")) return;
 
-      const now = new Date().toISOString();
-
-      // Sofort und dauerhaft auf diesem Gerät ausblenden.
-      rememberLocalDeletedPoolSuggestionId(id);
-      poolSuggestions = poolSuggestions.filter(entry => entry.id !== id);
-      updatePoolSuggestionsButtonLabel();
-      renderPoolSuggestionsAdmin();
+      hidePoolSuggestionLocally(id);
 
       try {
-        // Zusätzlich in Firebase-Sperrliste eintragen.
-        try {
-          await deletedPoolSuggestionsCollection().doc(id).set({
-            suggestionId: id,
-            deletedAt: now,
-            deletedBy: currentUser.email || ""
-          }, { merge: true });
-        } catch (blockError) {
-          console.warn("Firebase-Sperrliste konnte nicht geschrieben werden:", blockError);
-        }
-
-        // Zusätzlich Original-Vorschlag löschen.
-        try {
-          await poolSuggestionsCollection().doc(id).delete();
-        } catch (deleteError) {
-          console.warn("Original-Vorschlag konnte nicht gelöscht werden:", deleteError);
-        }
-
-        showMessage("poolSuggestionsNotice", "Vorschlag wurde gelöscht/ausgeblendet.");
+        await poolSuggestionsCollection().doc(id).delete();
+        showMessage("poolSuggestionsNotice", "Vorschlag wurde gelöscht.");
       } catch (error) {
-        showMessage("poolSuggestionsNotice", "Vorschlag wurde lokal ausgeblendet. Firebase meldet: " + error.message);
+        console.warn("Vorschlag konnte nicht direkt aus Firebase gelöscht werden:", error);
+        showMessage("poolSuggestionsNotice", "Vorschlag wurde auf diesem Gerät ausgeblendet.");
       }
     }
 
@@ -3510,7 +3436,7 @@
     const storeKey = "nfe_cat_foods_pwa_v2";
     const lastValuesKey = "nfe_cat_last_values_pwa_v2";
     const foodListCollapsedKey = "nfe_cat_food_items_collapsed_v1";
-    const deletedPoolSuggestionLocalKey = "nfe_cat_deleted_pool_suggestions_v1";
+    const hiddenPoolSuggestionLocalKey = "nfe_cat_hidden_pool_suggestions_v1";
     let foods = [];
     let currentUser = null;
     let unsubscribeFoods = null;
@@ -3523,9 +3449,9 @@
 
     function el(id){ return document.getElementById(id); }
 
-    function loadLocalDeletedPoolSuggestionIds() {
+    function loadHiddenPoolSuggestionIds() {
       try {
-        const raw = localStorage.getItem(deletedPoolSuggestionLocalKey);
+        const raw = localStorage.getItem(hiddenPoolSuggestionLocalKey);
         const parsed = raw ? JSON.parse(raw) : [];
         return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
       } catch (e) {
@@ -3533,16 +3459,19 @@
       }
     }
 
-    function saveLocalDeletedPoolSuggestionIds() {
+    function saveHiddenPoolSuggestionIds() {
       try {
-        localStorage.setItem(deletedPoolSuggestionLocalKey, JSON.stringify([...deletedPoolSuggestionIds]));
+        localStorage.setItem(hiddenPoolSuggestionLocalKey, JSON.stringify([...hiddenPoolSuggestionIds]));
       } catch (e) {}
     }
 
-    function rememberLocalDeletedPoolSuggestionId(id) {
+    function hidePoolSuggestionLocally(id) {
       if (!id) return;
-      deletedPoolSuggestionIds.add(id);
-      saveLocalDeletedPoolSuggestionIds();
+      hiddenPoolSuggestionIds.add(id);
+      saveHiddenPoolSuggestionIds();
+      poolSuggestions = poolSuggestions.filter(entry => entry.id !== id);
+      updatePoolSuggestionsButtonLabel();
+      renderPoolSuggestionsAdmin();
     }
 
     function getStoredFoods() {
@@ -3568,10 +3497,6 @@
       return db.collection("poolSuggestions");
     }
 
-    function deletedPoolSuggestionsCollection() {
-      return db.collection("poolSuggestionDeletes");
-    }
-
     function userPoolFavoritesCollection() {
       if (!currentUser) return null;
       return db.collection("users").doc(currentUser.uid).collection("poolFavorites");
@@ -3595,15 +3520,11 @@
         try { unsubscribePoolSuggestions(); } catch (e) {}
         unsubscribePoolSuggestions = null;
       }
-      if (unsubscribeDeletedPoolSuggestions) {
-        try { unsubscribeDeletedPoolSuggestions(); } catch (e) {}
-        unsubscribeDeletedPoolSuggestions = null;
-      }
 
       poolFoods = [];
       poolFavoriteIds = new Set();
       poolSuggestions = [];
-      deletedPoolSuggestionIds = new Set(loadLocalDeletedPoolSuggestionIds());
+      hiddenPoolSuggestionIds = new Set(loadHiddenPoolSuggestionIds());
       poolFoodsLoading = false;
       poolFavoritesLoading = false;
       updatePoolSuggestionsButtonLabel();
@@ -3649,26 +3570,6 @@
         poolFavoritesLoading = false;
         showMessage("syncNotice", "Futterpool-Favoriten konnten nicht geladen werden: " + error.message);
         renderFoods();
-      });
-    }
-
-    function subscribeToDeletedPoolSuggestions() {
-      if (unsubscribeDeletedPoolSuggestions) {
-        try { unsubscribeDeletedPoolSuggestions(); } catch (e) {}
-        unsubscribeDeletedPoolSuggestions = null;
-      }
-
-      if (!isCurrentAdmin()) return;
-
-      unsubscribeDeletedPoolSuggestions = deletedPoolSuggestionsCollection().onSnapshot(snapshot => {
-        const localIds = loadLocalDeletedPoolSuggestionIds();
-        const firebaseIds = snapshot.docs.map(doc => doc.id);
-        deletedPoolSuggestionIds = new Set([...localIds, ...firebaseIds]);
-        saveLocalDeletedPoolSuggestionIds();
-        updatePoolSuggestionsButtonLabel();
-        renderPoolSuggestionsAdmin();
-      }, error => {
-        showMessage("syncNotice", "Gelöschte Vorschläge konnten nicht geladen werden: " + error.message);
       });
     }
 
@@ -5071,7 +4972,6 @@
         subscribeToFoodPool();
         subscribeToPoolFavorites();
         subscribeToUserAccess();
-        subscribeToDeletedPoolSuggestions();
         subscribeToPoolSuggestions();
         setTimeout(runVersion49AutoMigration, 900);
         resetTransientFieldsOnStart();
