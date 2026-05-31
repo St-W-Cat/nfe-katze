@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version54-listen-export-position -->
+  <!-- Version: version55-futterpool -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -511,6 +511,14 @@
       background: #d99a00;
       color: #ffffff;
     }
+    .filter-pool {
+      background: #e2f3ff;
+      color: #1d5f8f;
+    }
+    .filter-pool.active {
+      background: #4da9df;
+      color: #ffffff;
+    }
     .food-items-content.collapsed {
       display: none;
     }
@@ -593,6 +601,83 @@
     .favorite-btn.active {
       background: #fff0b8;
       color: #b87900;
+    }
+    .food-item.pool-item {
+      background: #f4fbff;
+      border-color: #b8ddf5;
+    }
+    .pool-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 2px 8px;
+      margin-left: 4px;
+      background: #e2f3ff;
+      color: #1d5f8f;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .pool-suggest-btn {
+      background: #e2f3ff;
+      color: #1d5f8f;
+    }
+    .pool-suggestions-card {
+      grid-template-rows: auto auto 1fr;
+    }
+    .pool-suggestions-list {
+      display: grid;
+      align-content: start;
+      gap: 8px;
+      min-height: 0;
+      overflow: auto;
+      overscroll-behavior: contain;
+      padding-right: 2px;
+      padding-bottom: 8px;
+    }
+    .pool-suggestion-item {
+      display: grid;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: #fffdfb;
+      border-radius: 16px;
+      padding: 10px;
+    }
+    .pool-suggestion-title {
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .pool-suggestion-meta {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .pool-suggestion-values {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .pool-suggestion-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+    .pool-suggestion-actions button {
+      min-width: 0;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .approve-pool-btn {
+      background: #e3f6ec;
+      color: var(--green);
+    }
+    .reject-pool-btn {
+      background: #ffe3e3;
+      color: var(--red);
     }
     .delete-x {
       width: 44px;
@@ -968,7 +1053,8 @@
     }
     .logout-mini,
     .lists-mini,
-    .users-mini {
+    .users-mini,
+    .pool-mini {
       padding: 7px 10px;
       border-radius: 999px;
       font-size: 12px;
@@ -985,6 +1071,10 @@
     .users-mini {
       background: #fff0b8;
       color: #b87900;
+    }
+    .pool-mini {
+      background: #e2f3ff;
+      color: #1d5f8f;
     }
     .sync-note {
       color: var(--muted);
@@ -1054,6 +1144,7 @@
         <span class="auth-label">Angemeldet als <span id="userEmail" class="auth-email"></span></span>
         <button id="openListsButton" class="lists-mini" onclick="openListsAdmin()" style="display:none">Listen</button>
         <button id="openUsersButton" class="users-mini" onclick="openUsersAdmin()" style="display:none">Nutzer</button>
+        <button id="openPoolSuggestionsButton" class="pool-mini" onclick="openPoolSuggestionsAdmin()" style="display:none">Pool Vorschläge</button>
         <button class="logout-mini" onclick="logoutAccount()">Abmelden</button>
       </div>
     </section>
@@ -1209,6 +1300,7 @@
       <div class="actions">
         <button id="saveFoodButton" class="primary" onclick="saveFood()">Futter speichern</button>
         <button id="saveAsNewButton" class="primary" onclick="saveFoodAsNew()" style="display:none">neues Futter</button>
+        <button id="suggestPoolButton" class="secondary pool-suggest-btn" onclick="suggestFoodForPool()">Futter vorschlagen</button>
       </div>
       <div id="notice" class="notice"></div>
     </section>
@@ -1262,6 +1354,18 @@
       </section>
     </div>
 
+    <div id="poolSuggestionsOverlay" class="admin-options-overlay" style="display:none" onclick="closePoolSuggestionsAdmin(event)">
+      <section id="poolSuggestionsCard" class="card admin-options-card pool-suggestions-card" onclick="event.stopPropagation()">
+        <div class="admin-head">
+          <h2>Pool Vorschläge</h2>
+          <button type="button" class="admin-close" aria-label="Pool Vorschläge schließen" onclick="closePoolSuggestionsAdmin()">×</button>
+        </div>
+
+        <div id="poolSuggestionsNotice" class="notice"></div>
+        <div id="poolSuggestionsList" class="pool-suggestions-list"></div>
+      </section>
+    </div>
+
     <section id="foodListSection" class="card">
       <div class="food-list-head">
         <button id="foodListToggle" type="button" class="food-list-toggle" aria-label="Futter einklappen" onclick="toggleFoodList()">
@@ -1290,6 +1394,7 @@
           <button type="button" class="filter-btn filter-high" data-filter="high" data-label="vermeiden" onclick="setFoodFilter('high')">vermeiden</button>
           <button type="button" class="filter-btn active" data-filter="all" data-label="alle" onclick="setFoodFilter('all')">alle</button>
           <button type="button" class="filter-btn filter-fav" data-filter="fav" data-label="Favoriten" onclick="setFoodFilter('fav')">Favoriten</button>
+          <button type="button" class="filter-btn filter-pool" data-filter="pool" data-label="Futterpool" onclick="setFoodFilter('pool')">Futterpool</button>
         </div>
       </div>
 
@@ -1299,7 +1404,7 @@
     </section>
 
     </div>
-    <div class="version-note">v54 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v55 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1882,7 +1987,15 @@
     let version49MigrationStarted = false;
     let unsubscribeOptions = [];
     let unsubscribeUserAccess = null;
+    let unsubscribeFoodPool = null;
+    let unsubscribePoolFavorites = null;
+    let unsubscribePoolSuggestions = null;
     let accessUsers = [];
+    let poolFoods = [];
+    let poolFavoriteIds = new Set();
+    let poolSuggestions = [];
+    let poolFoodsLoading = true;
+    let poolFavoritesLoading = true;
     let currentAccessStatus = "unknown";
 
     function normalizeOptionValue(value) {
@@ -1920,6 +2033,7 @@
       if (btn) btn.style.display = isCurrentAdmin() ? "inline-flex" : "none";
       if (!isCurrentAdmin()) closeListsAdmin();
       setUsersVisibility();
+      setPoolSuggestionsVisibility();
     }
 
     function openListsAdmin() {
@@ -2561,6 +2675,169 @@
       document.body.style.overflow = "";
     }
 
+    function setPoolSuggestionsVisibility() {
+      const btn = el("openPoolSuggestionsButton");
+      if (!btn) return;
+      btn.style.display = isCurrentAdmin() ? "inline-flex" : "none";
+      updatePoolSuggestionsButtonLabel();
+      if (!isCurrentAdmin()) closePoolSuggestionsAdmin();
+    }
+
+    function getPendingPoolSuggestions() {
+      return poolSuggestions.filter(item => (item.status || "pending") === "pending");
+    }
+
+    function updatePoolSuggestionsButtonLabel() {
+      const btn = el("openPoolSuggestionsButton");
+      if (!btn || !isCurrentAdmin()) return;
+
+      const pendingCount = getPendingPoolSuggestions().length;
+      btn.innerHTML = pendingCount
+        ? 'Pool Vorschläge <span class="pending-count-dot">' + pendingCount + '</span>'
+        : "Pool Vorschläge";
+    }
+
+    function openPoolSuggestionsAdmin() {
+      if (!isCurrentAdmin()) return;
+      const overlay = el("poolSuggestionsOverlay");
+      if (!overlay) return;
+      overlay.classList.add("visible");
+      overlay.style.display = "flex";
+      document.body.style.overflow = "hidden";
+      renderPoolSuggestionsAdmin();
+    }
+
+    function closePoolSuggestionsAdmin(event) {
+      if (event && event.target && event.target.id !== "poolSuggestionsOverlay") return;
+      const overlay = el("poolSuggestionsOverlay");
+      if (!overlay) return;
+      overlay.classList.remove("visible");
+      overlay.style.display = "none";
+      document.body.style.overflow = "";
+    }
+
+    function renderPoolSuggestionsAdmin() {
+      const list = el("poolSuggestionsList");
+      if (!list) return;
+
+      list.innerHTML = "";
+
+      if (!isCurrentAdmin()) return;
+
+      const pending = getPendingPoolSuggestions();
+
+      if (!pending.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Keine offenen Pool-Vorschläge.";
+        list.appendChild(empty);
+        return;
+      }
+
+      pending.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "pool-suggestion-item";
+
+        const title = document.createElement("div");
+        title.className = "pool-suggestion-title";
+        title.textContent = [item.brand || "Unbenanntes Futter", item.sort].filter(Boolean).join(" – ");
+
+        const meta = document.createElement("div");
+        meta.className = "pool-suggestion-meta";
+        meta.textContent = "Von: " + (item.suggestedByEmail || "unbekannt") + " · " + (item.createdAt || "–");
+
+        const values = document.createElement("div");
+        values.className = "pool-suggestion-values";
+        const details = [item.packaging, item.weight, item.lifeAge].filter(Boolean).join(" · ");
+        values.innerHTML = (details ? details + "<br>" : "")
+          + "NfE TM: <strong>" + fmt(item.result?.nfeDry || 0) + "</strong> · "
+          + "NfE: " + fmt(item.result?.nfeFresh || 0) + " · "
+          + (item.result?.ratingText || "");
+
+        const actions = document.createElement("div");
+        actions.className = "pool-suggestion-actions";
+
+        const approve = document.createElement("button");
+        approve.type = "button";
+        approve.className = "approve-pool-btn";
+        approve.textContent = "Freigeben";
+        approve.onclick = () => approvePoolSuggestion(item.id);
+
+        const reject = document.createElement("button");
+        reject.type = "button";
+        reject.className = "reject-pool-btn";
+        reject.textContent = "Ablehnen";
+        reject.onclick = () => rejectPoolSuggestion(item.id);
+
+        actions.appendChild(approve);
+        actions.appendChild(reject);
+
+        row.appendChild(title);
+        row.appendChild(meta);
+        row.appendChild(values);
+        row.appendChild(actions);
+        list.appendChild(row);
+      });
+    }
+
+    async function approvePoolSuggestion(id) {
+      if (!isCurrentAdmin()) return;
+
+      const item = poolSuggestions.find(s => s.id === id);
+      if (!item) return;
+
+      if (!confirm("Vorschlag in den Futterpool übernehmen?")) return;
+
+      const now = new Date().toISOString();
+
+      const poolItem = {
+        brand: item.brand || "",
+        sort: item.sort || "",
+        packaging: item.packaging || "",
+        weight: item.weight || "",
+        lifeAge: item.lifeAge || "",
+        values: item.values || {},
+        result: item.result || {},
+        createdAt: now,
+        createdBy: currentUser.email || "",
+        sourceSuggestionId: id
+      };
+
+      try {
+        await foodPoolCollection().add(poolItem);
+        await poolSuggestionsCollection().doc(id).set({
+          status: "approved",
+          approvedAt: now,
+          approvedBy: currentUser.email || ""
+        }, { merge: true });
+
+        showMessage("poolSuggestionsNotice", "Vorschlag wurde freigegeben.");
+      } catch (error) {
+        showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht freigegeben werden: " + error.message);
+      }
+    }
+
+    async function rejectPoolSuggestion(id) {
+      if (!isCurrentAdmin()) return;
+
+      const item = poolSuggestions.find(s => s.id === id);
+      if (!item) return;
+
+      if (!confirm("Vorschlag ablehnen?")) return;
+
+      try {
+        await poolSuggestionsCollection().doc(id).set({
+          status: "rejected",
+          rejectedAt: new Date().toISOString(),
+          rejectedBy: currentUser.email || ""
+        }, { merge: true });
+
+        showMessage("poolSuggestionsNotice", "Vorschlag wurde abgelehnt.");
+      } catch (error) {
+        showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht abgelehnt werden: " + error.message);
+      }
+    }
+
     function setupSuggestions() {
       // Die Vorschläge werden jetzt über den eigenen Auswahl-Dialog genutzt,
       // damit es auch auf iPhone/Home-Bildschirm zuverlässig funktioniert.
@@ -2675,9 +2952,104 @@
       return db.collection("users").doc(currentUser.uid).collection("foods");
     }
 
+    function foodPoolCollection() {
+      return db.collection("foodPool");
+    }
+
+    function poolSuggestionsCollection() {
+      return db.collection("poolSuggestions");
+    }
+
+    function userPoolFavoritesCollection() {
+      if (!currentUser) return null;
+      return db.collection("users").doc(currentUser.uid).collection("poolFavorites");
+    }
+
     function setStoredFoods(nextFoods) {
       foods = nextFoods;
       renderFoods();
+    }
+
+    function stopPoolSubscriptions() {
+      if (unsubscribeFoodPool) {
+        try { unsubscribeFoodPool(); } catch (e) {}
+        unsubscribeFoodPool = null;
+      }
+      if (unsubscribePoolFavorites) {
+        try { unsubscribePoolFavorites(); } catch (e) {}
+        unsubscribePoolFavorites = null;
+      }
+      if (unsubscribePoolSuggestions) {
+        try { unsubscribePoolSuggestions(); } catch (e) {}
+        unsubscribePoolSuggestions = null;
+      }
+
+      poolFoods = [];
+      poolFavoriteIds = new Set();
+      poolSuggestions = [];
+      poolFoodsLoading = false;
+      poolFavoritesLoading = false;
+      updatePoolSuggestionsButtonLabel();
+    }
+
+    function subscribeToFoodPool() {
+      if (unsubscribeFoodPool) {
+        try { unsubscribeFoodPool(); } catch (e) {}
+        unsubscribeFoodPool = null;
+      }
+
+      poolFoodsLoading = true;
+      renderFoods();
+
+      unsubscribeFoodPool = foodPoolCollection().onSnapshot(snapshot => {
+        poolFoodsLoading = false;
+        poolFoods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderFoods();
+      }, error => {
+        poolFoodsLoading = false;
+        showMessage("syncNotice", "Futterpool konnte nicht geladen werden: " + error.message);
+        renderFoods();
+      });
+    }
+
+    function subscribeToPoolFavorites() {
+      if (unsubscribePoolFavorites) {
+        try { unsubscribePoolFavorites(); } catch (e) {}
+        unsubscribePoolFavorites = null;
+      }
+
+      const collection = userPoolFavoritesCollection();
+      if (!collection) return;
+
+      poolFavoritesLoading = true;
+      renderFoods();
+
+      unsubscribePoolFavorites = collection.onSnapshot(snapshot => {
+        poolFavoritesLoading = false;
+        poolFavoriteIds = new Set(snapshot.docs.map(doc => doc.id));
+        renderFoods();
+      }, error => {
+        poolFavoritesLoading = false;
+        showMessage("syncNotice", "Futterpool-Favoriten konnten nicht geladen werden: " + error.message);
+        renderFoods();
+      });
+    }
+
+    function subscribeToPoolSuggestions() {
+      if (unsubscribePoolSuggestions) {
+        try { unsubscribePoolSuggestions(); } catch (e) {}
+        unsubscribePoolSuggestions = null;
+      }
+
+      if (!isCurrentAdmin()) return;
+
+      unsubscribePoolSuggestions = poolSuggestionsCollection().onSnapshot(snapshot => {
+        poolSuggestions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        updatePoolSuggestionsButtonLabel();
+        renderPoolSuggestionsAdmin();
+      }, error => {
+        showMessage("syncNotice", "Pool-Vorschläge konnten nicht geladen werden: " + error.message);
+      });
     }
 
     function subscribeToFoods() {
@@ -2975,6 +3347,78 @@
       saveFoodInternal(true);
     }
 
+    function buildFoodItemFromForm(id, favorite) {
+      const brand = el("brand").value.trim();
+      const sort = el("sort").value.trim();
+      const packaging = el("packaging").value.trim();
+      const weight = el("weight").value.trim();
+      const lifeAge = el("lifeAge").value.trim();
+
+      return {
+        id,
+        brand,
+        sort,
+        packaging,
+        weight,
+        lifeAge,
+        favorite: !!favorite,
+        savedAt: new Date().toISOString(),
+        values: {
+          protein: currentResult.protein,
+          fett: currentResult.fett,
+          faser: currentResult.faser,
+          asche: currentResult.asche,
+          feuchte: currentResult.feuchte
+        },
+        result: {
+          nfeFresh: currentResult.nfeFresh,
+          nfeDry: currentResult.nfeDry,
+          ratingText: currentResult.ratingText,
+          ratingClass: currentResult.ratingClass
+        }
+      };
+    }
+
+    async function suggestFoodForPool() {
+      if (!currentUser) {
+        showMessage("notice", "Bitte zuerst einloggen.");
+        return;
+      }
+
+      if (!calculate()) return;
+
+      const brand = el("brand").value.trim();
+      const sort = el("sort").value.trim();
+
+      if (!brand && !sort) {
+        showMessage("notice", "Bitte mindestens Marke oder Sorte eintragen.");
+        return;
+      }
+
+      const item = buildFoodItemFromForm(String(Date.now()), false);
+
+      const suggestion = {
+        brand: item.brand,
+        sort: item.sort,
+        packaging: item.packaging,
+        weight: item.weight,
+        lifeAge: item.lifeAge,
+        values: item.values,
+        result: item.result,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        suggestedByUid: currentUser.uid,
+        suggestedByEmail: currentUser.email || ""
+      };
+
+      try {
+        await poolSuggestionsCollection().add(suggestion);
+        showMessage("notice", "Futter wurde als Pool-Vorschlag gesendet.");
+      } catch (error) {
+        showMessage("notice", "Vorschlag konnte nicht gesendet werden: " + error.message);
+      }
+    }
+
     async function saveFoodInternal(forceNew) {
       if (!currentUser) {
         showMessage("notice", "Bitte zuerst einloggen.");
@@ -3079,6 +3523,71 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    function selectPoolFood(id) {
+      const item = poolFoods.find(f => f.id === id);
+      if (!item) return;
+
+      el("protein").value = item.values?.protein ?? "";
+      el("fett").value = item.values?.fett ?? "";
+      el("faser").value = item.values?.faser ?? "";
+      el("asche").value = item.values?.asche ?? "";
+      el("feuchte").value = item.values?.feuchte ?? "";
+      el("brand").value = item.brand || "";
+      el("sort").value = item.sort || "";
+      el("packaging").value = item.packaging || "";
+      el("weight").value = item.weight || "";
+      el("lifeAge").value = item.lifeAge || "";
+
+      editingId = null;
+      calculate();
+      el("saveCard").classList.add("visible");
+      el("saveTitle").textContent = "Futter aus dem Futterpool";
+      el("saveFoodButton").textContent = "Als eigenes Futter speichern";
+      el("saveAsNewButton").style.display = "none";
+      renderFoods();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function togglePoolFavorite(id, event) {
+      if (event) event.stopPropagation();
+      if (!currentUser) {
+        showMessage("syncNotice", "Bitte zuerst einloggen.");
+        return;
+      }
+
+      const collection = userPoolFavoritesCollection();
+      if (!collection) return;
+
+      try {
+        if (poolFavoriteIds.has(id)) {
+          await collection.doc(id).delete();
+        } else {
+          await collection.doc(id).set({
+            poolFoodId: id,
+            createdAt: new Date().toISOString()
+          });
+        }
+      } catch (error) {
+        showMessage("syncNotice", "Futterpool-Favorit konnte nicht gespeichert werden: " + error.message);
+      }
+    }
+
+    async function deletePoolFood(id, event) {
+      if (event) event.stopPropagation();
+      if (!isCurrentAdmin()) return;
+
+      const item = poolFoods.find(f => f.id === id);
+      if (!item) return;
+
+      if (!confirm("Futter aus dem Futterpool löschen?")) return;
+
+      try {
+        await foodPoolCollection().doc(id).delete();
+      } catch (error) {
+        showMessage("syncNotice", "Futterpool-Eintrag konnte nicht gelöscht werden: " + error.message);
+      }
+    }
+
     async function toggleFavorite(id, event) {
       if (event) event.stopPropagation();
       if (!currentUser) {
@@ -3115,15 +3624,17 @@
     }
 
     function makeFoodNode(item) {
+      const isPool = item._source === "pool";
       const box = document.createElement("div");
-      box.className = "food-item" + (item.id === editingId ? " selected" : "");
-      box.onclick = () => selectFood(item.id);
+      box.className = "food-item" + (isPool ? " pool-item" : "") + (!isPool && item.id === editingId ? " selected" : "");
+      box.onclick = () => isPool ? selectPoolFood(item.id) : selectFood(item.id);
 
       const main = document.createElement("div");
       main.className = "food-main";
 
       const top = document.createElement("div");
       top.className = "food-top " + item.result.ratingClass;
+
       const brandLine = document.createElement("div");
       brandLine.className = "food-brand";
       brandLine.textContent = item.brand || "Unbenanntes Futter";
@@ -3138,7 +3649,11 @@
       const meta = document.createElement("div");
       meta.className = "food-meta";
       const details = [item.packaging, item.weight, item.lifeAge].filter(Boolean).join(" · ");
-      meta.innerHTML = (details ? details + "<br>" : "") + "<strong>NfE TM: " + fmt(item.result.nfeDry) + "</strong> · NfE: " + fmt(item.result.nfeFresh) + " · <span class=\"food-rating " + item.result.ratingClass + "\">" + item.result.ratingText + "</span>";
+      const poolBadge = isPool ? ' <span class="pool-badge">Futterpool</span>' : "";
+      meta.innerHTML = (details ? details + "<br>" : "")
+        + "<strong>NfE TM: " + fmt(item.result.nfeDry) + "</strong> · NfE: "
+        + fmt(item.result.nfeFresh) + " · <span class=\"food-rating " + item.result.ratingClass + "\">"
+        + item.result.ratingText + "</span>" + poolBadge;
 
       const actions = document.createElement("div");
       actions.className = "food-actions";
@@ -3147,16 +3662,19 @@
       fav.className = "favorite-btn" + (item.favorite ? " active" : "");
       fav.textContent = item.favorite ? "★" : "☆";
       fav.setAttribute("aria-label", item.favorite ? "Favorit entfernen" : "Als Favorit markieren");
-      fav.onclick = (event) => toggleFavorite(item.id, event);
-
-      const del = document.createElement("button");
-      del.className = "delete-x";
-      del.textContent = "×";
-      del.setAttribute("aria-label", "Futter löschen");
-      del.onclick = (event) => deleteFood(item.id, event);
+      fav.onclick = (event) => isPool ? togglePoolFavorite(item.id, event) : toggleFavorite(item.id, event);
 
       actions.appendChild(fav);
-      actions.appendChild(del);
+
+      if (!isPool || isCurrentAdmin()) {
+        const del = document.createElement("button");
+        del.className = "delete-x";
+        del.textContent = "×";
+        del.setAttribute("aria-label", isPool ? "Futterpool-Eintrag löschen" : "Futter löschen");
+        del.onclick = (event) => isPool ? deletePoolFood(item.id, event) : deleteFood(item.id, event);
+        actions.appendChild(del);
+      }
+
       main.appendChild(top);
       main.appendChild(meta);
       box.appendChild(main);
@@ -3186,10 +3704,33 @@
       return searchInput ? searchInput.value.trim().toLocaleLowerCase("de") : "";
     }
 
+    function makePoolDisplayItem(item) {
+      return {
+        ...item,
+        _source: "pool",
+        favorite: poolFavoriteIds.has(item.id)
+      };
+    }
+
+    function getMainDisplayFoods() {
+      const ownFoods = foods.map(item => ({ ...item, _source: "own" }));
+      const poolFavorites = poolFoods
+        .filter(item => poolFavoriteIds.has(item.id))
+        .map(makePoolDisplayItem);
+
+      return [...ownFoods, ...poolFavorites];
+    }
+
     function getVisibleFoods() {
       const q = getCurrentSearchQuery();
 
-      return foods.filter(item => {
+      if (activeFoodFilter === "pool") {
+        return poolFoods
+          .map(makePoolDisplayItem)
+          .filter(item => matchesSearch(item, q));
+      }
+
+      return getMainDisplayFoods().filter(item => {
         const matchesFilter =
           activeFoodFilter === "all"
           || (activeFoodFilter === "fav" && !!item.favorite)
@@ -3200,13 +3741,16 @@
 
     function updateFilterCounts() {
       const q = getCurrentSearchQuery();
-      const searchableFoods = foods.filter(item => matchesSearch(item, q));
+      const mainFoods = getMainDisplayFoods().filter(item => matchesSearch(item, q));
+      const poolSearchFoods = poolFoods.map(makePoolDisplayItem).filter(item => matchesSearch(item, q));
+
       const counts = {
-        all: searchableFoods.length,
-        good: searchableFoods.filter(item => item.result?.ratingClass === "good").length,
-        mid: searchableFoods.filter(item => item.result?.ratingClass === "mid").length,
-        high: searchableFoods.filter(item => item.result?.ratingClass === "high").length,
-        fav: searchableFoods.filter(item => !!item.favorite).length
+        all: mainFoods.length,
+        good: mainFoods.filter(item => item.result?.ratingClass === "good").length,
+        mid: mainFoods.filter(item => item.result?.ratingClass === "mid").length,
+        high: mainFoods.filter(item => item.result?.ratingClass === "high").length,
+        fav: mainFoods.filter(item => !!item.favorite).length,
+        pool: poolSearchFoods.length
       };
 
       document.querySelectorAll(".filter-btn").forEach(btn => {
@@ -3244,18 +3788,15 @@
       updateFilterCounts();
       const list = el("savedList");
       list.innerHTML = "";
-      if (foodsLoading) {
-        const empty = document.createElement("div");
-        empty.className = "empty";
-        empty.textContent = "Futter-Liste wird geladen …";
-        list.appendChild(empty);
-        return;
-      }
 
-      if (!foods.length) {
+      const loading = activeFoodFilter === "pool"
+        ? poolFoodsLoading
+        : (foodsLoading || poolFoodsLoading || poolFavoritesLoading);
+
+      if (loading) {
         const empty = document.createElement("div");
         empty.className = "empty";
-        empty.textContent = "Noch kein Futter gespeichert.";
+        empty.textContent = activeFoodFilter === "pool" ? "Futterpool wird geladen …" : "Futter-Liste wird geladen …";
         list.appendChild(empty);
         return;
       }
@@ -3265,7 +3806,7 @@
       if (!sortedFoods.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
-        empty.textContent = "Kein passendes Futter gefunden.";
+        empty.textContent = activeFoodFilter === "pool" ? "Noch kein Futter im Futterpool." : "Kein passendes Futter gefunden.";
         list.appendChild(empty);
         return;
       }
@@ -3572,6 +4113,8 @@
     });
     el("optionAdminSearch").addEventListener("input", renderOptionsAdmin);
     foodsLoading = true;
+    poolFoodsLoading = true;
+    poolFavoritesLoading = true;
     renderFoods();
     applyFoodListCollapsedState();
     resetTransientFieldsOnStart();
@@ -3585,6 +4128,7 @@
       }
       stopOptionsSubscription();
       stopUserAccessSubscription();
+      stopPoolSubscriptions();
 
       if (currentUser) {
         el("authCard").style.display = "none";
@@ -3610,6 +4154,7 @@
           renderFoods();
           resetTransientFieldsOnStart();
           resetSuggestionOptionsToDefault();
+          stopPoolSubscriptions();
           showAccessCard(accessStatus);
           return;
         }
@@ -3618,7 +4163,10 @@
         el("appContent").classList.add("visible");
         subscribeToOptions();
         subscribeToFoods();
+        subscribeToFoodPool();
+        subscribeToPoolFavorites();
         subscribeToUserAccess();
+        subscribeToPoolSuggestions();
         setTimeout(runVersion49AutoMigration, 900);
         resetTransientFieldsOnStart();
       } else {
@@ -3633,6 +4181,7 @@
         el("appContent").classList.remove("visible");
         el("userEmail").textContent = "";
         resetSuggestionOptionsToDefault();
+        stopPoolSubscriptions();
         setAdminVisibility();
       }
     });
