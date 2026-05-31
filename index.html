@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version59-pool-vorschlag-ohne-pruefen -->
+  <!-- Version: version60-pool-aenderung-vorschlagen -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -618,9 +618,13 @@
       font-size: 12px;
       font-weight: 900;
     }
-    .pool-suggest-btn {
+    .pool-suggest-btn,
+    .pool-change-btn {
       background: #e2f3ff;
       color: #1d5f8f;
+    }
+    .pool-change-btn {
+      background: #dff7ff;
     }
     .pool-suggestions-card {
       grid-template-rows: auto auto 1fr;
@@ -690,6 +694,34 @@
     }
     .pool-suggestion-analysis strong {
       color: var(--text);
+    }
+    .pool-suggestion-kind {
+      display: inline-flex;
+      width: fit-content;
+      border-radius: 999px;
+      padding: 3px 9px;
+      background: #e2f3ff;
+      color: #1d5f8f;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .pool-change-compare {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .pool-change-col strong {
+      color: var(--accent-dark);
+    }
+    .pool-change-col div {
+      margin-top: 3px;
+      line-height: 1.35;
     }
     .approve-pool-btn {
       background: #e3f6ec;
@@ -1321,6 +1353,7 @@
         <button id="saveFoodButton" class="primary" onclick="saveFood()">Futter speichern</button>
         <button id="saveAsNewButton" class="primary" onclick="saveFoodAsNew()" style="display:none">neues Futter</button>
         <button id="suggestPoolButton" class="secondary pool-suggest-btn" onclick="suggestFoodForPool()">Futter vorschlagen</button>
+        <button id="suggestPoolChangeButton" class="secondary pool-change-btn" onclick="suggestPoolFoodChange()" style="display:none">Änderung vorschlagen</button>
       </div>
       <div id="notice" class="notice"></div>
     </section>
@@ -1424,7 +1457,7 @@
     </section>
 
     </div>
-    <div class="version-note">v59 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v60 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2018,6 +2051,7 @@
     let poolFavoritesLoading = true;
     let adminPoolSyncRunning = false;
     let adminPoolSyncQueued = false;
+    let selectedPoolFoodIdForChange = null;
     let currentAccessStatus = "unknown";
 
     function normalizeOptionValue(value) {
@@ -2744,6 +2778,46 @@
       document.body.style.overflow = "";
     }
 
+    function renderSuggestionFoodSummary(food) {
+      const details = [food.packaging, food.weight, food.lifeAge].filter(Boolean).join(" · ");
+      return (details ? xmlEscape(details) + "<br>" : "")
+        + "NfE TM: <strong>" + fmt(food.result?.nfeDry || 0) + "</strong> · "
+        + "NfE: " + fmt(food.result?.nfeFresh || 0) + " · "
+        + xmlEscape(food.result?.ratingText || "");
+    }
+
+    function renderSuggestionAnalysis(food) {
+      return "<span>Rohprotein <strong>" + fmt(food.values?.protein ?? 0) + " %</strong></span>"
+        + "<span>Rohfett <strong>" + fmt(food.values?.fett ?? 0) + " %</strong></span>"
+        + "<span>Rohfaser <strong>" + fmt(food.values?.faser ?? 0) + " %</strong></span>"
+        + "<span>Rohasche <strong>" + fmt(food.values?.asche ?? 0) + " %</strong></span>"
+        + "<span>Feuchtigkeit <strong>" + fmt(food.values?.feuchte ?? 0) + " %</strong></span>";
+    }
+
+    function renderChangeComparison(oldFood, newFood) {
+      const oldTitle = [oldFood.brand || "Unbenanntes Futter", oldFood.sort].filter(Boolean).join(" – ");
+      const newTitle = [newFood.brand || "Unbenanntes Futter", newFood.sort].filter(Boolean).join(" – ");
+
+      return "<div class=\"pool-change-col\"><strong>Bisher</strong>"
+        + "<div>" + xmlEscape(oldTitle) + "</div>"
+        + "<div>" + xmlEscape([oldFood.packaging, oldFood.weight, oldFood.lifeAge].filter(Boolean).join(" · ")) + "</div>"
+        + "<div>Rohprotein: " + fmt(oldFood.values?.protein ?? 0)
+        + " · Rohfett: " + fmt(oldFood.values?.fett ?? 0)
+        + " · Rohfaser: " + fmt(oldFood.values?.faser ?? 0)
+        + " · Rohasche: " + fmt(oldFood.values?.asche ?? 0)
+        + " · Feuchtigkeit: " + fmt(oldFood.values?.feuchte ?? 0) + "</div>"
+        + "<div>NfE TM: " + fmt(oldFood.result?.nfeDry || 0) + " · NfE: " + fmt(oldFood.result?.nfeFresh || 0) + "</div></div>"
+        + "<div class=\"pool-change-col\"><strong>Neu</strong>"
+        + "<div>" + xmlEscape(newTitle) + "</div>"
+        + "<div>" + xmlEscape([newFood.packaging, newFood.weight, newFood.lifeAge].filter(Boolean).join(" · ")) + "</div>"
+        + "<div>Rohprotein: " + fmt(newFood.values?.protein ?? 0)
+        + " · Rohfett: " + fmt(newFood.values?.fett ?? 0)
+        + " · Rohfaser: " + fmt(newFood.values?.faser ?? 0)
+        + " · Rohasche: " + fmt(newFood.values?.asche ?? 0)
+        + " · Feuchtigkeit: " + fmt(newFood.values?.feuchte ?? 0) + "</div>"
+        + "<div>NfE TM: " + fmt(newFood.result?.nfeDry || 0) + " · NfE: " + fmt(newFood.result?.nfeFresh || 0) + "</div></div>";
+    }
+
     function renderPoolSuggestionsAdmin() {
       const list = el("poolSuggestionsList");
       if (!list) return;
@@ -2763,12 +2837,21 @@
       }
 
       pending.forEach(item => {
+        const isChange = item.suggestionType === "change";
+        const displayFood = isChange ? (item.newFood || item) : item;
+        const oldFood = item.oldFood || {};
+        const newFood = item.newFood || displayFood;
+
         const row = document.createElement("div");
         row.className = "pool-suggestion-item";
 
+        const kind = document.createElement("div");
+        kind.className = "pool-suggestion-kind";
+        kind.textContent = isChange ? "Änderungsvorschlag" : "Neues Futter";
+
         const title = document.createElement("div");
         title.className = "pool-suggestion-title";
-        title.textContent = [item.brand || "Unbenanntes Futter", item.sort].filter(Boolean).join(" – ");
+        title.textContent = [displayFood.brand || "Unbenanntes Futter", displayFood.sort].filter(Boolean).join(" – ");
 
         const meta = document.createElement("div");
         meta.className = "pool-suggestion-meta";
@@ -2776,20 +2859,24 @@
 
         const values = document.createElement("div");
         values.className = "pool-suggestion-values";
-        const details = [item.packaging, item.weight, item.lifeAge].filter(Boolean).join(" · ");
-        values.innerHTML = (details ? details + "<br>" : "")
-          + "NfE TM: <strong>" + fmt(item.result?.nfeDry || 0) + "</strong> · "
-          + "NfE: " + fmt(item.result?.nfeFresh || 0) + " · "
-          + (item.result?.ratingText || "");
+        values.innerHTML = renderSuggestionFoodSummary(displayFood);
 
         const analysis = document.createElement("div");
         analysis.className = "pool-suggestion-analysis";
-        analysis.innerHTML =
-          "<span>Rohprotein <strong>" + fmt(item.values?.protein ?? 0) + " %</strong></span>"
-          + "<span>Rohfett <strong>" + fmt(item.values?.fett ?? 0) + " %</strong></span>"
-          + "<span>Rohfaser <strong>" + fmt(item.values?.faser ?? 0) + " %</strong></span>"
-          + "<span>Rohasche <strong>" + fmt(item.values?.asche ?? 0) + " %</strong></span>"
-          + "<span>Feuchtigkeit <strong>" + fmt(item.values?.feuchte ?? 0) + " %</strong></span>";
+        analysis.innerHTML = renderSuggestionAnalysis(displayFood);
+
+        row.appendChild(kind);
+        row.appendChild(title);
+        row.appendChild(meta);
+        row.appendChild(values);
+        row.appendChild(analysis);
+
+        if (isChange) {
+          const compare = document.createElement("div");
+          compare.className = "pool-change-compare";
+          compare.innerHTML = renderChangeComparison(oldFood, newFood);
+          row.appendChild(compare);
+        }
 
         const actions = document.createElement("div");
         actions.className = "pool-suggestion-actions";
@@ -2797,7 +2884,7 @@
         const approve = document.createElement("button");
         approve.type = "button";
         approve.className = "approve-pool-btn";
-        approve.textContent = "Freigeben";
+        approve.textContent = isChange ? "Änderung freigeben" : "Freigeben";
         approve.onclick = () => approvePoolSuggestion(item.id);
 
         const reject = document.createElement("button");
@@ -2809,10 +2896,6 @@
         actions.appendChild(approve);
         actions.appendChild(reject);
 
-        row.appendChild(title);
-        row.appendChild(meta);
-        row.appendChild(values);
-        row.appendChild(analysis);
         row.appendChild(actions);
         list.appendChild(row);
       });
@@ -2824,28 +2907,63 @@
       const item = poolSuggestions.find(s => s.id === id);
       if (!item) return;
 
-      if (!confirm("Vorschlag in den Futterpool übernehmen?")) return;
+      const isChange = item.suggestionType === "change";
+
+      if (!confirm(isChange ? "Änderung im Futterpool freigeben?" : "Vorschlag in den Futterpool übernehmen?")) return;
 
       const now = new Date().toISOString();
 
-      const foodId = String(Date.now());
-      const adminFoodItem = {
-        id: foodId,
-        brand: item.brand || "",
-        sort: item.sort || "",
-        packaging: item.packaging || "",
-        weight: item.weight || "",
-        lifeAge: item.lifeAge || "",
-        favorite: false,
-        savedAt: now,
-        values: item.values || {},
-        result: item.result || {},
-        sourceSuggestionId: id,
-        suggestedByUid: item.suggestedByUid || "",
-        suggestedByEmail: item.suggestedByEmail || ""
-      };
-
       try {
+        if (isChange) {
+          const targetId = item.targetAdminFoodId || item.targetPoolFoodId;
+          const newFood = item.newFood || item;
+
+          if (!targetId) {
+            showMessage("poolSuggestionsNotice", "Ziel-Futter für Änderung wurde nicht gefunden.");
+            return;
+          }
+
+          await userFoodsCollection().doc(targetId).set({
+            brand: newFood.brand || "",
+            sort: newFood.sort || "",
+            packaging: newFood.packaging || "",
+            weight: newFood.weight || "",
+            lifeAge: newFood.lifeAge || "",
+            values: newFood.values || {},
+            result: newFood.result || {},
+            savedAt: now,
+            updatedFromSuggestionId: id,
+            updatedBy: currentUser.email || ""
+          }, { merge: true });
+
+          await poolSuggestionsCollection().doc(id).set({
+            status: "approved",
+            approvedAt: now,
+            approvedBy: currentUser.email || "",
+            adminFoodId: targetId
+          }, { merge: true });
+
+          showMessage("poolSuggestionsNotice", "Änderung wurde freigegeben und in deiner Admin-Futterliste übernommen.");
+          return;
+        }
+
+        const foodId = String(Date.now());
+        const adminFoodItem = {
+          id: foodId,
+          brand: item.brand || "",
+          sort: item.sort || "",
+          packaging: item.packaging || "",
+          weight: item.weight || "",
+          lifeAge: item.lifeAge || "",
+          favorite: false,
+          savedAt: now,
+          values: item.values || {},
+          result: item.result || {},
+          sourceSuggestionId: id,
+          suggestedByUid: item.suggestedByUid || "",
+          suggestedByEmail: item.suggestedByEmail || ""
+        };
+
         await userFoodsCollection().doc(foodId).set(adminFoodItem);
         await poolSuggestionsCollection().doc(id).set({
           status: "approved",
@@ -3252,6 +3370,7 @@
     }
 
     function resetTransientFieldsOnStart() {
+      resetPoolChangeSelection();
       fields.forEach(id => el(id).value = "");
       ["brand", "sort", "packaging", "weight", "lifeAge"].forEach(id => {
         const input = el(id);
@@ -3466,6 +3585,7 @@
 
     function clearAfterSave(message) {
       editingId = null;
+      resetPoolChangeSelection();
       fields.forEach(id => el(id).value = "");
       el("brand").value = "";
       el("sort").value = "";
@@ -3510,6 +3630,52 @@
 
     function saveFoodAsNew() {
       saveFoodInternal(true);
+    }
+
+    function setPoolChangeButtonVisible(show) {
+      const btn = el("suggestPoolChangeButton");
+      if (!btn) return;
+      btn.style.display = show && !isCurrentAdmin() ? "inline-flex" : "none";
+    }
+
+    function resetPoolChangeSelection() {
+      selectedPoolFoodIdForChange = null;
+      setPoolChangeButtonVisible(false);
+    }
+
+    function createFoodPayloadFromItem(item) {
+      return {
+        brand: item.brand || "",
+        sort: item.sort || "",
+        packaging: item.packaging || "",
+        weight: item.weight || "",
+        lifeAge: item.lifeAge || "",
+        values: item.values || {},
+        result: item.result || {}
+      };
+    }
+
+    function createFoodPayloadFromForm() {
+      return {
+        brand: el("brand").value.trim(),
+        sort: el("sort").value.trim(),
+        packaging: el("packaging").value.trim(),
+        weight: el("weight").value.trim(),
+        lifeAge: el("lifeAge").value.trim(),
+        values: {
+          protein: currentResult.protein,
+          fett: currentResult.fett,
+          faser: currentResult.faser,
+          asche: currentResult.asche,
+          feuchte: currentResult.feuchte
+        },
+        result: {
+          nfeFresh: currentResult.nfeFresh,
+          nfeDry: currentResult.nfeDry,
+          ratingText: currentResult.ratingText,
+          ratingClass: currentResult.ratingClass
+        }
+      };
     }
 
     function buildFoodItemFromForm(id, favorite) {
@@ -3581,6 +3747,64 @@
         showMessage("notice", "Futter wurde als Pool-Vorschlag gesendet.");
       } catch (error) {
         showMessage("notice", "Vorschlag konnte nicht gesendet werden: " + error.message);
+      }
+    }
+
+    async function suggestPoolFoodChange() {
+      if (!currentUser) {
+        showMessage("notice", "Bitte zuerst einloggen.");
+        return;
+      }
+
+      if (!selectedPoolFoodIdForChange) {
+        showMessage("notice", "Bitte zuerst ein Futter aus dem Futterpool öffnen.");
+        return;
+      }
+
+      const original = poolFoods.find(item => item.id === selectedPoolFoodIdForChange);
+      if (!original) {
+        showMessage("notice", "Das ursprüngliche Futter wurde nicht gefunden.");
+        resetPoolChangeSelection();
+        return;
+      }
+
+      if (!calculate()) return;
+
+      const oldFood = createFoodPayloadFromItem(original);
+      const newFood = createFoodPayloadFromForm();
+
+      const oldJson = JSON.stringify(oldFood);
+      const newJson = JSON.stringify(newFood);
+
+      if (oldJson === newJson) {
+        showMessage("notice", "Es wurden keine Änderungen erkannt.");
+        return;
+      }
+
+      const suggestion = {
+        suggestionType: "change",
+        targetPoolFoodId: original.id,
+        targetAdminFoodId: original.sourceFoodId || original.id,
+        oldFood,
+        newFood,
+        brand: newFood.brand,
+        sort: newFood.sort,
+        packaging: newFood.packaging,
+        weight: newFood.weight,
+        lifeAge: newFood.lifeAge,
+        values: newFood.values,
+        result: newFood.result,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        suggestedByUid: currentUser.uid,
+        suggestedByEmail: currentUser.email || ""
+      };
+
+      try {
+        await poolSuggestionsCollection().add(suggestion);
+        showMessage("notice", "Änderung wurde als Pool-Vorschlag gesendet.");
+      } catch (error) {
+        showMessage("notice", "Änderungsvorschlag konnte nicht gesendet werden: " + error.message);
       }
     }
 
@@ -3668,6 +3892,7 @@
     }
 
     function selectFood(id) {
+      resetPoolChangeSelection();
       const item = foods.find(f => f.id === id);
       if (!item) return;
 
@@ -3704,11 +3929,13 @@
       el("lifeAge").value = item.lifeAge || "";
 
       editingId = null;
+      selectedPoolFoodIdForChange = item.id;
       calculate();
       el("saveCard").classList.add("visible");
       el("saveTitle").textContent = "Futter aus dem Futterpool";
       el("saveFoodButton").textContent = "Als eigenes Futter speichern";
       el("saveAsNewButton").style.display = "none";
+      setPoolChangeButtonVisible(true);
       renderFoods();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
