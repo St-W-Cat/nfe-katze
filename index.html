@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version69-vorschlaege-sperrliste -->
+  <!-- Version: version70-vorschlaege-lokal-ausblenden -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1532,7 +1532,7 @@
     </section>
 
     </div>
-    <div class="version-note">v69 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v70 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2131,7 +2131,7 @@
     let poolFoods = [];
     let poolFavoriteIds = new Set();
     let poolSuggestions = [];
-    let deletedPoolSuggestionIds = new Set();
+    let deletedPoolSuggestionIds = new Set(loadLocalDeletedPoolSuggestionIds());
     let poolFoodsLoading = true;
     let poolFavoritesLoading = true;
     let adminPoolSyncRunning = false;
@@ -3247,39 +3247,40 @@
       if (!isCurrentAdmin()) return;
 
       const item = poolSuggestions.find(s => s.id === id);
-      if (!item) return;
+      if (!item && deletedPoolSuggestionIds.has(id)) return;
 
       if (!confirm("Vorschlag wirklich löschen?")) return;
 
       const now = new Date().toISOString();
 
-      // Sofort lokal ausblenden.
-      deletedPoolSuggestionIds.add(id);
+      // Sofort und dauerhaft auf diesem Gerät ausblenden.
+      rememberLocalDeletedPoolSuggestionId(id);
       poolSuggestions = poolSuggestions.filter(entry => entry.id !== id);
       updatePoolSuggestionsButtonLabel();
       renderPoolSuggestionsAdmin();
 
       try {
-        // Erst in Sperrliste eintragen. Dadurch bleibt der Vorschlag auch dann unsichtbar,
-        // wenn das eigentliche Löschen später nicht sofort greift oder ein Cache ihn zurückbringt.
-        await deletedPoolSuggestionsCollection().doc(id).set({
-          suggestionId: id,
-          deletedAt: now,
-          deletedBy: currentUser.email || ""
-        }, { merge: true });
+        // Zusätzlich in Firebase-Sperrliste eintragen.
+        try {
+          await deletedPoolSuggestionsCollection().doc(id).set({
+            suggestionId: id,
+            deletedAt: now,
+            deletedBy: currentUser.email || ""
+          }, { merge: true });
+        } catch (blockError) {
+          console.warn("Firebase-Sperrliste konnte nicht geschrieben werden:", blockError);
+        }
 
+        // Zusätzlich Original-Vorschlag löschen.
         try {
           await poolSuggestionsCollection().doc(id).delete();
-          showMessage("poolSuggestionsNotice", "Vorschlag wurde gelöscht.");
         } catch (deleteError) {
-          showMessage("poolSuggestionsNotice", "Vorschlag wurde ausgeblendet. Direktes Löschen wurde blockiert: " + deleteError.message);
+          console.warn("Original-Vorschlag konnte nicht gelöscht werden:", deleteError);
         }
+
+        showMessage("poolSuggestionsNotice", "Vorschlag wurde gelöscht/ausgeblendet.");
       } catch (error) {
-        deletedPoolSuggestionIds.delete(id);
-        const msg = "Vorschlag konnte nicht gelöscht werden: " + error.message;
-        showMessage("poolSuggestionsNotice", msg);
-        alert(msg);
-        renderPoolSuggestionsAdmin();
+        showMessage("poolSuggestionsNotice", "Vorschlag wurde lokal ausgeblendet. Firebase meldet: " + error.message);
       }
     }
 
@@ -3462,6 +3463,7 @@
     const storeKey = "nfe_cat_foods_pwa_v2";
     const lastValuesKey = "nfe_cat_last_values_pwa_v2";
     const foodListCollapsedKey = "nfe_cat_food_items_collapsed_v1";
+    const deletedPoolSuggestionLocalKey = "nfe_cat_deleted_pool_suggestions_v1";
     let foods = [];
     let currentUser = null;
     let unsubscribeFoods = null;
@@ -3473,6 +3475,28 @@
     const pawSvg = '<svg class="paw" viewBox="0 0 120 120" aria-hidden="true"><ellipse class="shape" cx="24" cy="50" rx="12" ry="19" transform="rotate(-31 24 50)"/><ellipse class="shape" cx="48" cy="27" rx="13" ry="22" transform="rotate(-9 48 27)"/><ellipse class="shape" cx="72" cy="27" rx="13" ry="22" transform="rotate(9 72 27)"/><ellipse class="shape" cx="96" cy="50" rx="12" ry="19" transform="rotate(31 96 50)"/><path class="shape" d="M34 102 C20 94 22 77 36 69 C43 65 42 55 51 50 C57 46 65 46 71 50 C80 55 79 65 86 69 C100 77 102 94 86 102 C77 107 70 101 62 101 C53 101 45 108 34 102 Z"/></svg>';
 
     function el(id){ return document.getElementById(id); }
+
+    function loadLocalDeletedPoolSuggestionIds() {
+      try {
+        const raw = localStorage.getItem(deletedPoolSuggestionLocalKey);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveLocalDeletedPoolSuggestionIds() {
+      try {
+        localStorage.setItem(deletedPoolSuggestionLocalKey, JSON.stringify([...deletedPoolSuggestionIds]));
+      } catch (e) {}
+    }
+
+    function rememberLocalDeletedPoolSuggestionId(id) {
+      if (!id) return;
+      deletedPoolSuggestionIds.add(id);
+      saveLocalDeletedPoolSuggestionIds();
+    }
 
     function getStoredFoods() {
       try {
@@ -3532,7 +3556,7 @@
       poolFoods = [];
       poolFavoriteIds = new Set();
       poolSuggestions = [];
-      deletedPoolSuggestionIds = new Set();
+      deletedPoolSuggestionIds = new Set(loadLocalDeletedPoolSuggestionIds());
       poolFoodsLoading = false;
       poolFavoritesLoading = false;
       updatePoolSuggestionsButtonLabel();
@@ -3590,7 +3614,10 @@
       if (!isCurrentAdmin()) return;
 
       unsubscribeDeletedPoolSuggestions = deletedPoolSuggestionsCollection().onSnapshot(snapshot => {
-        deletedPoolSuggestionIds = new Set(snapshot.docs.map(doc => doc.id));
+        const localIds = loadLocalDeletedPoolSuggestionIds();
+        const firebaseIds = snapshot.docs.map(doc => doc.id);
+        deletedPoolSuggestionIds = new Set([...localIds, ...firebaseIds]);
+        saveLocalDeletedPoolSuggestionIds();
         updatePoolSuggestionsButtonLabel();
         renderPoolSuggestionsAdmin();
       }, error => {
