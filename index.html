@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version66-vorschlaege-ablehnen-loeschen -->
+  <!-- Version: version67-vorschlaege-ablehnen-robust -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1532,7 +1532,7 @@
     </section>
 
     </div>
-    <div class="version-note">v66 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v67 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2842,8 +2842,17 @@
       return "food";
     }
 
+    function isOpenPoolSuggestion(item) {
+      const status = String(item.status || "pending").toLocaleLowerCase("de");
+      return status === "pending"
+        && !item.approvedAt
+        && !item.rejectedAt
+        && !item.removedAt
+        && !item.deletedAt;
+    }
+
     function getPendingPoolSuggestions() {
-      return poolSuggestions.filter(item => (item.status || "pending") === "pending");
+      return poolSuggestions.filter(isOpenPoolSuggestion);
     }
 
     function getFilteredPoolSuggestions() {
@@ -3239,12 +3248,36 @@
 
       if (!confirm("Vorschlag wirklich ablehnen und aus der Liste entfernen?")) return;
 
-      try {
-        await poolSuggestionsCollection().doc(id).delete();
+      const now = new Date().toISOString();
 
-        showMessage("poolSuggestionsNotice", "Vorschlag wurde abgelehnt und entfernt.");
+      // Sofort aus der sichtbaren Liste entfernen, damit die Anzeige direkt stimmt.
+      poolSuggestions = poolSuggestions.map(entry => entry.id === id
+        ? { ...entry, status: "rejected", rejectedAt: now, rejectedBy: currentUser.email || "" }
+        : entry
+      );
+      updatePoolSuggestionsButtonLabel();
+      renderPoolSuggestionsAdmin();
+
+      try {
+        const ref = poolSuggestionsCollection().doc(id);
+
+        // Erst markieren, damit der Vorschlag auch dann ausgeblendet bleibt,
+        // wenn das endgültige Löschen aus irgendeinem Grund nicht sofort klappt.
+        await ref.set({
+          status: "rejected",
+          rejectedAt: now,
+          rejectedBy: currentUser.email || "",
+          removedAt: now
+        }, { merge: true });
+
+        try {
+          await ref.delete();
+          showMessage("poolSuggestionsNotice", "Vorschlag wurde abgelehnt und entfernt.");
+        } catch (deleteError) {
+          showMessage("poolSuggestionsNotice", "Vorschlag wurde abgelehnt und ausgeblendet.");
+        }
       } catch (error) {
-        showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht entfernt werden: " + error.message);
+        showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht abgelehnt werden: " + error.message);
       }
     }
 
