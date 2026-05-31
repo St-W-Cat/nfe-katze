@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version72-mitteilungen-blockieren-freigabe-nicht -->
+  <!-- Version: version73-freigabe-stabil-direkt -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1619,7 +1619,7 @@
     </section>
 
     </div>
-    <div class="version-note">v72 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v73 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -3244,6 +3244,55 @@
       });
     }
 
+    async function finishPoolSuggestionAfterApproval(id) {
+      const now = new Date().toISOString();
+
+      // Sofort lokal ausblenden, damit der Vorschlag nicht in der Anzeige hängen bleibt.
+      rememberLocalDeletedPoolSuggestionId(id);
+      poolSuggestions = poolSuggestions.filter(entry => entry.id !== id);
+      updatePoolSuggestionsButtonLabel();
+      renderPoolSuggestionsAdmin();
+
+      // Zusätzlich in Firebase als erledigt markieren und möglichst löschen.
+      try {
+        await poolSuggestionsCollection().doc(id).set({
+          status: "approved",
+          approvedAt: now,
+          approvedBy: currentUser.email || "",
+          removedAt: now
+        }, { merge: true });
+      } catch (error) {
+        console.warn("Vorschlag konnte nicht als erledigt markiert werden:", error);
+      }
+
+      try {
+        await deletedPoolSuggestionsCollection().doc(id).set({
+          suggestionId: id,
+          deletedAt: now,
+          deletedBy: currentUser.email || "",
+          reason: "approved"
+        }, { merge: true });
+      } catch (error) {
+        console.warn("Sperrliste konnte nicht geschrieben werden:", error);
+      }
+
+      try {
+        await poolSuggestionsCollection().doc(id).delete();
+      } catch (error) {
+        console.warn("Vorschlag konnte nicht direkt gelöscht werden:", error);
+      }
+    }
+
+    function notifyApprovalLater(callback) {
+      setTimeout(async () => {
+        try {
+          await callback();
+        } catch (error) {
+          console.warn("Mitteilung nach Freigabe konnte nicht erstellt werden:", error);
+        }
+      }, 0);
+    }
+
     async function approvePoolSuggestion(id) {
       if (!isCurrentAdmin()) return;
 
@@ -3259,26 +3308,33 @@
 
       try {
         if (isOption) {
-          const saved = await addOptionValue(item.optionKey, item.optionValue, true);
+          const key = item.optionKey;
+          const value = item.optionValue || "";
+          const alreadyExists = optionValueExists(key, value);
+          let saved = false;
 
-          await poolSuggestionsCollection().doc(id).set({
-            status: "approved",
-            approvedAt: now,
-            approvedBy: currentUser.email || "",
-            optionSaved: !!saved
-          }, { merge: true });
+          if (!alreadyExists) {
+            saved = await addOptionValue(key, value, true);
+          }
+
+          const nowExists = optionValueExists(key, value);
+          if (!saved && !alreadyExists && !nowExists) {
+            throw new Error("Listeneintrag konnte nicht gespeichert werden.");
+          }
+
+          await finishPoolSuggestionAfterApproval(id);
 
           if (item.suggestedByUid) {
-            await tryCreatePersonalNotification(
+            notifyApprovalLater(() => tryCreatePersonalNotification(
               item.suggestedByUid,
               "Listen-Vorschlag übernommen",
               "Dein Vorschlag „" + (item.optionValue || "") + "“ wurde in die Liste " + (item.optionTitle || "Auswahlliste") + " übernommen.",
               "suggestion-option-approved",
               id
-            );
+            ));
           }
 
-          showMessage("poolSuggestionsNotice", saved ? "Listeneintrag wurde gespeichert." : "Listeneintrag war bereits vorhanden.");
+          showMessage("poolSuggestionsNotice", saved ? "Listeneintrag wurde gespeichert." : "Listeneintrag war bereits vorhanden und wurde aus den Vorschlägen entfernt.");
           return;
         }
 
@@ -3304,23 +3360,20 @@
             updatedBy: currentUser.email || ""
           }, { merge: true });
 
-          await poolSuggestionsCollection().doc(id).set({
-            status: "approved",
-            approvedAt: now,
-            approvedBy: currentUser.email || "",
-            adminFoodId: targetId
-          }, { merge: true });
+          await finishPoolSuggestionAfterApproval(id);
 
-          if (item.suggestedByUid) {
-            await tryCreatePersonalNotification(
-              item.suggestedByUid,
-              "Änderungsvorschlag übernommen",
-              "Dein Änderungsvorschlag zu „" + foodLabel(newFood) + "“ wurde übernommen.",
-              "suggestion-change-approved",
-              id
-            );
-          }
-          await tryCreateGlobalFoodNotification("changed", { ...newFood, id: targetId }, targetId);
+          notifyApprovalLater(async () => {
+            if (item.suggestedByUid) {
+              await tryCreatePersonalNotification(
+                item.suggestedByUid,
+                "Änderungsvorschlag übernommen",
+                "Dein Änderungsvorschlag zu „" + foodLabel(newFood) + "“ wurde übernommen.",
+                "suggestion-change-approved",
+                id
+              );
+            }
+            await tryCreateGlobalFoodNotification("changed", { ...newFood, id: targetId }, targetId);
+          });
 
           showMessage("poolSuggestionsNotice", "Änderung wurde freigegeben und in deiner Admin-Futterliste übernommen.");
           return;
@@ -3344,27 +3397,27 @@
         };
 
         await userFoodsCollection().doc(foodId).set(adminFoodItem);
-        await poolSuggestionsCollection().doc(id).set({
-          status: "approved",
-          approvedAt: now,
-          approvedBy: currentUser.email || "",
-          adminFoodId: foodId
-        }, { merge: true });
 
-        if (item.suggestedByUid) {
-          await tryCreatePersonalNotification(
-            item.suggestedByUid,
-            "Futtervorschlag übernommen",
-            "Dein Futtervorschlag „" + foodLabel(adminFoodItem) + "“ wurde in den Futterpool übernommen.",
-            "suggestion-food-approved",
-            id
-          );
-        }
-        await tryCreateGlobalFoodNotification("added", adminFoodItem, foodId);
+        await finishPoolSuggestionAfterApproval(id);
+
+        notifyApprovalLater(async () => {
+          if (item.suggestedByUid) {
+            await tryCreatePersonalNotification(
+              item.suggestedByUid,
+              "Futtervorschlag übernommen",
+              "Dein Futtervorschlag „" + foodLabel(adminFoodItem) + "“ wurde in den Futterpool übernommen.",
+              "suggestion-food-approved",
+              id
+            );
+          }
+          await tryCreateGlobalFoodNotification("added", adminFoodItem, foodId);
+        });
 
         showMessage("poolSuggestionsNotice", "Vorschlag wurde freigegeben und in deine Admin-Futterliste übernommen.");
       } catch (error) {
-        showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht freigegeben werden: " + error.message);
+        const msg = "Vorschlag konnte nicht freigegeben werden: " + error.message;
+        showMessage("poolSuggestionsNotice", msg);
+        alert(msg);
       }
     }
 
