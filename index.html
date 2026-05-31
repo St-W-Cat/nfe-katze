@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version74-rollback-stabil-ohne-mitteilungen -->
+  <!-- Version: version75-freigabe-entfernt-vorschlag -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1532,7 +1532,7 @@
     </section>
 
     </div>
-    <div class="version-note">v74 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v75 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -3151,6 +3151,47 @@
       });
     }
 
+    async function finishPoolSuggestionAfterApproval(id) {
+      const now = new Date().toISOString();
+
+      // Sofort lokal ausblenden.
+      rememberLocalDeletedPoolSuggestionId(id);
+      poolSuggestions = poolSuggestions.filter(entry => entry.id !== id);
+      updatePoolSuggestionsButtonLabel();
+      renderPoolSuggestionsAdmin();
+
+      // Zusätzlich in Firebase-Sperrliste eintragen.
+      try {
+        await deletedPoolSuggestionsCollection().doc(id).set({
+          suggestionId: id,
+          deletedAt: now,
+          deletedBy: currentUser.email || "",
+          reason: "approved"
+        }, { merge: true });
+      } catch (error) {
+        console.warn("Sperrliste konnte nicht geschrieben werden:", error);
+      }
+
+      // Zusätzlich Original-Vorschlag als erledigt markieren.
+      try {
+        await poolSuggestionsCollection().doc(id).set({
+          status: "approved",
+          approvedAt: now,
+          approvedBy: currentUser.email || "",
+          removedAt: now
+        }, { merge: true });
+      } catch (error) {
+        console.warn("Vorschlag konnte nicht als erledigt markiert werden:", error);
+      }
+
+      // Und wenn möglich endgültig löschen.
+      try {
+        await poolSuggestionsCollection().doc(id).delete();
+      } catch (error) {
+        console.warn("Vorschlag konnte nicht direkt gelöscht werden:", error);
+      }
+    }
+
     async function approvePoolSuggestion(id) {
       if (!isCurrentAdmin()) return;
 
@@ -3175,7 +3216,9 @@
             optionSaved: !!saved
           }, { merge: true });
 
-          showMessage("poolSuggestionsNotice", saved ? "Listeneintrag wurde gespeichert." : "Listeneintrag war bereits vorhanden.");
+          await finishPoolSuggestionAfterApproval(id);
+
+          showMessage("poolSuggestionsNotice", saved ? "Listeneintrag wurde gespeichert und aus den Vorschlägen entfernt." : "Listeneintrag war bereits vorhanden und wurde aus den Vorschlägen entfernt.");
           return;
         }
 
@@ -3208,7 +3251,9 @@
             adminFoodId: targetId
           }, { merge: true });
 
-          showMessage("poolSuggestionsNotice", "Änderung wurde freigegeben und in deiner Admin-Futterliste übernommen.");
+          await finishPoolSuggestionAfterApproval(id);
+
+          showMessage("poolSuggestionsNotice", "Änderung wurde freigegeben und aus den Vorschlägen entfernt.");
           return;
         }
 
@@ -3237,7 +3282,9 @@
           adminFoodId: foodId
         }, { merge: true });
 
-        showMessage("poolSuggestionsNotice", "Vorschlag wurde freigegeben und in deine Admin-Futterliste übernommen.");
+        await finishPoolSuggestionAfterApproval(id);
+
+        showMessage("poolSuggestionsNotice", "Vorschlag wurde freigegeben und aus den Vorschlägen entfernt.");
       } catch (error) {
         showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht freigegeben werden: " + error.message);
       }
