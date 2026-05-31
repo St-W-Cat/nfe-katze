@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version65-pool-vorschlaege-uebersichtlicher -->
+  <!-- Version: version66-vorschlaege-ablehnen-loeschen -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1532,7 +1532,7 @@
     </section>
 
     </div>
-    <div class="version-note">v65 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v66 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -3237,18 +3237,14 @@
       const item = poolSuggestions.find(s => s.id === id);
       if (!item) return;
 
-      if (!confirm("Vorschlag ablehnen?")) return;
+      if (!confirm("Vorschlag wirklich ablehnen und aus der Liste entfernen?")) return;
 
       try {
-        await poolSuggestionsCollection().doc(id).set({
-          status: "rejected",
-          rejectedAt: new Date().toISOString(),
-          rejectedBy: currentUser.email || ""
-        }, { merge: true });
+        await poolSuggestionsCollection().doc(id).delete();
 
-        showMessage("poolSuggestionsNotice", "Vorschlag wurde abgelehnt.");
+        showMessage("poolSuggestionsNotice", "Vorschlag wurde abgelehnt und entfernt.");
       } catch (error) {
-        showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht abgelehnt werden: " + error.message);
+        showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht entfernt werden: " + error.message);
       }
     }
 
