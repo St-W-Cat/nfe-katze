@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version60-pool-aenderung-vorschlagen -->
+  <!-- Version: version61-pool-admin-edit-und-duplikat -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1457,7 +1457,7 @@
     </section>
 
     </div>
-    <div class="version-note">v60 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v61 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -3617,6 +3617,13 @@
         .join("|");
     }
 
+    function hasDuplicateInPool(item) {
+      const sig = duplicateSignature(item);
+      const hasAnyLabel = sig.replaceAll("|", "").trim() !== "";
+      if (!hasAnyLabel) return false;
+      return poolFoods.some(poolItem => duplicateSignature(poolItem) === sig);
+    }
+
     function hasDuplicateFood(item) {
       const sig = duplicateSignature(item);
       const hasAnyLabel = sig.replaceAll("|", "").trim() !== "";
@@ -3852,6 +3859,10 @@
         if (!confirm("Dieses Futter gibt es schon. Trotzdem speichern?")) return;
       }
 
+      if (!wasEditing && !isCurrentAdmin() && hasDuplicateInPool(item)) {
+        if (!confirm("Dieses Futter gibt es bereits im Futterpool. Du kannst es dort als Favorit markieren. Trotzdem zusätzlich in deiner eigenen Liste speichern?")) return;
+      }
+
       try {
         const collection = userFoodsCollection();
         await collection.doc(item.id).set(item);
@@ -3872,6 +3883,7 @@
 
     function newFood() {
       editingId = null;
+      resetPoolChangeSelection();
       fields.forEach(id => el(id).value = "");
       el("brand").value = "";
       el("sort").value = "";
@@ -3927,6 +3939,18 @@
       el("packaging").value = item.packaging || "";
       el("weight").value = item.weight || "";
       el("lifeAge").value = item.lifeAge || "";
+
+      if (isCurrentAdmin()) {
+        const targetId = item.sourceFoodId || item.id;
+        const adminItem = foods.find(food => food.id === targetId) || { ...item, id: targetId };
+        editingId = targetId;
+        selectedPoolFoodIdForChange = null;
+        calculate();
+        setEditMode(adminItem);
+        renderFoods();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
 
       editingId = null;
       selectedPoolFoodIdForChange = item.id;
@@ -4018,7 +4042,8 @@
     function makeFoodNode(item) {
       const isPool = item._source === "pool";
       const box = document.createElement("div");
-      box.className = "food-item" + (isPool ? " pool-item" : "") + (!isPool && item.id === editingId ? " selected" : "");
+      const isSelectedPoolAdmin = isPool && isCurrentAdmin() && (item.sourceFoodId || item.id) === editingId;
+      box.className = "food-item" + (isPool ? " pool-item" : "") + ((!isPool && item.id === editingId) || isSelectedPoolAdmin ? " selected" : "");
       box.onclick = () => isPool ? selectPoolFood(item.id) : selectFood(item.id);
 
       const main = document.createElement("div");
