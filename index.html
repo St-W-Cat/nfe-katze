@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version79-rollback-auf-v65-stabil -->
+  <!-- Version: version81-v62-plus-listen-und-reiter -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -665,20 +665,17 @@
     }
     .pool-suggestion-item {
       display: grid;
-      gap: 6px;
+      gap: 8px;
       border: 1px solid var(--line);
       background: #fffdfb;
       border-radius: 16px;
-      padding: 9px;
-    }
-    .pool-suggestion-item.compact-option {
-      background: #fcfeff;
+      padding: 10px;
     }
     .pool-suggestion-title {
       font-size: 14px;
       font-weight: 900;
       color: var(--text);
-      line-height: 1.25;
+      line-height: 1.3;
     }
     .pool-suggestion-meta {
       font-size: 12px;
@@ -705,11 +702,11 @@
     .pool-suggestion-analysis {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 5px;
+      gap: 6px;
       background: #f8fafc;
       border: 1px solid var(--line);
       border-radius: 14px;
-      padding: 7px;
+      padding: 8px;
       font-size: 12px;
       color: var(--muted);
     }
@@ -754,6 +751,9 @@
       background: #e2f3ff;
       color: #1d5f8f;
     }
+    .pool-suggestion-item.compact-option {
+      background: #fcfeff;
+    }
     .pool-option-missing {
       display: grid;
       gap: 5px;
@@ -768,13 +768,11 @@
       color: #1d5f8f;
       font-weight: 900;
     }
-    .pool-option-missing-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-      gap: 8px;
+    .pool-option-value {
+      color: var(--text);
+      font-weight: 800;
+      word-break: break-word;
     }
-    .pool-option-missing-row button,
     .approve-option-btn {
       min-width: 0;
       padding: 7px 9px;
@@ -783,11 +781,6 @@
       font-weight: 900;
       background: #e3f6ec;
       color: var(--green);
-    }
-    .pool-option-value {
-      color: var(--text);
-      font-weight: 800;
-      word-break: break-word;
     }
     .approve-pool-btn {
       background: #e3f6ec;
@@ -1532,7 +1525,7 @@
     </section>
 
     </div>
-    <div class="version-note">v79 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v81 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2913,83 +2906,6 @@
       document.body.style.overflow = "";
     }
 
-    function getMissingOptionsForFood(food) {
-      const missing = [];
-      Object.entries(version49FoodFields).forEach(([key, field]) => {
-        const value = normalizeOptionValue(food?.[field] || "");
-        if (!value) return;
-        if (!optionValueExists(key, value)) {
-          missing.push({
-            key,
-            label: optionFieldLabels[key] || optionDocs[key]?.title || key,
-            value
-          });
-        }
-      });
-      return missing;
-    }
-
-    async function approveMissingOptionFromSuggestion(suggestionId, key, value) {
-      if (!isCurrentAdmin()) return;
-
-      const clean = normalizeOptionValue(value);
-      if (!clean || !key) return;
-
-      try {
-        if (optionValueExists(key, clean)) {
-          showMessage("poolSuggestionsNotice", "Eintrag ist bereits in der Liste vorhanden.");
-          renderPoolSuggestionsAdmin();
-          return;
-        }
-
-        const saved = await addOptionValue(key, clean, true);
-        if (saved) {
-          await poolSuggestionsCollection().doc(suggestionId).set({
-            savedOptionValues: firebase.firestore.FieldValue.arrayUnion(key + "::" + clean),
-            updatedAt: new Date().toISOString(),
-            updatedBy: currentUser.email || ""
-          }, { merge: true });
-
-          renderPoolSuggestionsAdmin();
-          showMessage("poolSuggestionsNotice", "Listeneintrag wurde gespeichert.");
-        }
-      } catch (error) {
-        showMessage("poolSuggestionsNotice", "Listeneintrag konnte nicht gespeichert werden: " + error.message);
-      }
-    }
-
-    function renderMissingOptionsBox(suggestionId, food) {
-      const missing = getMissingOptionsForFood(food);
-      if (!missing.length) return null;
-
-      const box = document.createElement("div");
-      box.className = "pool-option-missing";
-
-      const title = document.createElement("div");
-      title.className = "pool-option-missing-title";
-      title.textContent = "Neue Einträge für Auswahllisten";
-      box.appendChild(title);
-
-      missing.forEach(item => {
-        const row = document.createElement("div");
-        row.className = "pool-option-missing-row";
-
-        const text = document.createElement("div");
-        text.innerHTML = "<span>" + xmlEscape(item.label) + ":</span> <span class=\"pool-option-value\">" + xmlEscape(item.value) + "</span>";
-
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.textContent = "in Liste speichern";
-        btn.onclick = () => approveMissingOptionFromSuggestion(suggestionId, item.key, item.value);
-
-        row.appendChild(text);
-        row.appendChild(btn);
-        box.appendChild(row);
-      });
-
-      return box;
-    }
-
     function renderSuggestionFoodSummary(food) {
       const details = [food.packaging, food.weight, food.lifeAge].filter(Boolean).join(" · ");
       return (details ? xmlEscape(details) + "<br>" : "")
@@ -3337,7 +3253,23 @@
       return (suggestionOptions[key] || []).some(item => normalizeOptionValue(item).toLocaleLowerCase("de") === clean);
     }
 
-    async function suggestOptionValue(key, value, source) {
+    function getMissingOptionsForFood(food) {
+      const missing = [];
+      Object.entries(version49FoodFields).forEach(([key, field]) => {
+        const value = normalizeOptionValue(food?.[field] || "");
+        if (!value) return;
+        if (!optionValueExists(key, value)) {
+          missing.push({
+            key,
+            label: optionFieldLabels[key] || optionDocs[key]?.title || key,
+            value
+          });
+        }
+      });
+      return missing;
+    }
+
+    async function suggestOptionValue(key, value, source, linkedSuggestionId) {
       if (!currentUser) {
         showMessage("notice", "Bitte zuerst einloggen.");
         return false;
@@ -3360,6 +3292,7 @@
         optionTitle: optionFieldLabels[key] || optionDocs[key]?.title || key,
         optionValue: clean,
         source: source || "chooser",
+        linkedSuggestionId: linkedSuggestionId || "",
         status: "pending",
         createdAt: new Date().toISOString(),
         suggestedByUid: currentUser.uid,
@@ -3376,6 +3309,17 @@
       }
     }
 
+    async function suggestChooserTextAsOption() {
+      const value = el("chooserSearch").value.trim();
+      if (!value || !chooserOptionsId) return;
+
+      const sent = await suggestOptionValue(chooserOptionsId, value, "chooser", "");
+      if (sent && chooserTargetInput) {
+        el(chooserTargetInput).value = normalizeOptionValue(value);
+        closeChooser();
+      }
+    }
+
     async function createOptionSuggestionsForFood(food, source, linkedSuggestionId) {
       if (!currentUser || isCurrentAdmin()) return 0;
 
@@ -3383,42 +3327,11 @@
       let count = 0;
 
       for (const item of missing) {
-        const clean = normalizeOptionValue(item.value);
-        if (!clean || optionValueExists(item.key, clean)) continue;
-
-        const suggestion = {
-          suggestionType: "option",
-          optionKey: item.key,
-          optionTitle: item.label,
-          optionValue: clean,
-          source: source || "foodSuggestion",
-          linkedSuggestionId: linkedSuggestionId || "",
-          status: "pending",
-          createdAt: new Date().toISOString(),
-          suggestedByUid: currentUser.uid,
-          suggestedByEmail: currentUser.email || ""
-        };
-
-        try {
-          await poolSuggestionsCollection().add(suggestion);
-          count++;
-        } catch (error) {
-          console.warn("Listen-Vorschlag konnte nicht automatisch erstellt werden:", error);
-        }
+        const sent = await suggestOptionValue(item.key, item.value, source || "foodSuggestion", linkedSuggestionId || "");
+        if (sent) count++;
       }
 
       return count;
-    }
-
-    async function suggestChooserTextAsOption() {
-      const value = el("chooserSearch").value.trim();
-      if (!value || !chooserOptionsId) return;
-
-      const sent = await suggestOptionValue(chooserOptionsId, value, "chooser");
-      if (sent && chooserTargetInput) {
-        el(chooserTargetInput).value = normalizeOptionValue(value);
-        closeChooser();
-      }
     }
 
     function clearField(id) {
@@ -4089,7 +4002,6 @@
         lifeAge: item.lifeAge,
         values: item.values,
         result: item.result,
-        missingOptions: getMissingOptionsForFood(item),
         status: "pending",
         createdAt: new Date().toISOString(),
         suggestedByUid: currentUser.uid,
@@ -4151,7 +4063,6 @@
         lifeAge: newFood.lifeAge,
         values: newFood.values,
         result: newFood.result,
-        missingOptions: getMissingOptionsForFood(newFood),
         status: "pending",
         createdAt: new Date().toISOString(),
         suggestedByUid: currentUser.uid,
