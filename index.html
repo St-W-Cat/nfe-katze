@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version64-getrennte-listen-vorschlaege -->
+  <!-- Version: version65-pool-vorschlaege-uebersichtlicher -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -629,10 +629,34 @@
     .pool-suggestions-card {
       grid-template-rows: auto auto 1fr;
     }
+    .pool-suggestion-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 2px 0 8px;
+      scrollbar-width: none;
+    }
+    .pool-suggestion-tabs::-webkit-scrollbar {
+      display: none;
+    }
+    .pool-suggestion-tab {
+      min-width: 0;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      background: #edf5ff;
+      color: #1d5f8f;
+      white-space: nowrap;
+    }
+    .pool-suggestion-tab.active {
+      background: #4da9df;
+      color: #ffffff;
+    }
     .pool-suggestions-list {
       display: grid;
       align-content: start;
-      gap: 8px;
+      gap: 7px;
       min-height: 0;
       overflow: auto;
       overscroll-behavior: contain;
@@ -641,17 +665,20 @@
     }
     .pool-suggestion-item {
       display: grid;
-      gap: 8px;
+      gap: 6px;
       border: 1px solid var(--line);
       background: #fffdfb;
       border-radius: 16px;
-      padding: 10px;
+      padding: 9px;
+    }
+    .pool-suggestion-item.compact-option {
+      background: #fcfeff;
     }
     .pool-suggestion-title {
       font-size: 14px;
       font-weight: 900;
       color: var(--text);
-      line-height: 1.3;
+      line-height: 1.25;
     }
     .pool-suggestion-meta {
       font-size: 12px;
@@ -678,11 +705,11 @@
     .pool-suggestion-analysis {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 6px;
+      gap: 5px;
       background: #f8fafc;
       border: 1px solid var(--line);
       border-radius: 14px;
-      padding: 8px;
+      padding: 7px;
       font-size: 12px;
       color: var(--muted);
     }
@@ -729,11 +756,11 @@
     }
     .pool-option-missing {
       display: grid;
-      gap: 7px;
+      gap: 5px;
       background: #f4fbff;
       border: 1px solid #b8ddf5;
       border-radius: 14px;
-      padding: 8px;
+      padding: 7px;
       font-size: 12px;
       color: var(--muted);
     }
@@ -1455,6 +1482,14 @@
         </div>
 
         <div id="poolSuggestionsNotice" class="notice"></div>
+
+        <div class="pool-suggestion-tabs">
+          <button type="button" class="pool-suggestion-tab active" data-pool-suggestion-filter="all" onclick="setPoolSuggestionFilter('all')">Alle</button>
+          <button type="button" class="pool-suggestion-tab" data-pool-suggestion-filter="food" onclick="setPoolSuggestionFilter('food')">Futter</button>
+          <button type="button" class="pool-suggestion-tab" data-pool-suggestion-filter="change" onclick="setPoolSuggestionFilter('change')">Änderungen</button>
+          <button type="button" class="pool-suggestion-tab" data-pool-suggestion-filter="option" onclick="setPoolSuggestionFilter('option')">Listen</button>
+        </div>
+
         <div id="poolSuggestionsList" class="pool-suggestions-list"></div>
       </section>
     </div>
@@ -1497,7 +1532,7 @@
     </section>
 
     </div>
-    <div class="version-note">v64 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v65 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2100,6 +2135,7 @@
     let adminPoolSyncRunning = false;
     let adminPoolSyncQueued = false;
     let selectedPoolFoodIdForChange = null;
+    let activePoolSuggestionFilter = "all";
     let currentAccessStatus = "unknown";
 
     function normalizeOptionValue(value) {
@@ -2800,8 +2836,49 @@
       if (!isCurrentAdmin()) closePoolSuggestionsAdmin();
     }
 
+    function getPoolSuggestionKind(item) {
+      if (item.suggestionType === "option") return "option";
+      if (item.suggestionType === "change") return "change";
+      return "food";
+    }
+
     function getPendingPoolSuggestions() {
       return poolSuggestions.filter(item => (item.status || "pending") === "pending");
+    }
+
+    function getFilteredPoolSuggestions() {
+      const pending = getPendingPoolSuggestions();
+      if (activePoolSuggestionFilter === "all") return pending;
+      return pending.filter(item => getPoolSuggestionKind(item) === activePoolSuggestionFilter);
+    }
+
+    function setPoolSuggestionFilter(filter) {
+      activePoolSuggestionFilter = filter || "all";
+      updatePoolSuggestionTabs();
+      renderPoolSuggestionsAdmin();
+    }
+
+    function updatePoolSuggestionTabs() {
+      const pending = getPendingPoolSuggestions();
+      const counts = {
+        all: pending.length,
+        food: pending.filter(item => getPoolSuggestionKind(item) === "food").length,
+        change: pending.filter(item => getPoolSuggestionKind(item) === "change").length,
+        option: pending.filter(item => getPoolSuggestionKind(item) === "option").length
+      };
+
+      const labels = {
+        all: "Alle",
+        food: "Futter",
+        change: "Änderungen",
+        option: "Listen"
+      };
+
+      document.querySelectorAll(".pool-suggestion-tab").forEach(btn => {
+        const filter = btn.dataset.poolSuggestionFilter;
+        btn.classList.toggle("active", filter === activePoolSuggestionFilter);
+        btn.textContent = labels[filter] + " (" + (counts[filter] || 0) + ")";
+      });
     }
 
     function updatePoolSuggestionsButtonLabel() {
@@ -2812,6 +2889,8 @@
       btn.innerHTML = pendingCount
         ? 'Pool Vorschläge <span class="pending-count-dot">' + pendingCount + '</span>'
         : "Pool Vorschläge";
+
+      updatePoolSuggestionTabs();
     }
 
     function openPoolSuggestionsAdmin() {
@@ -2821,6 +2900,7 @@
       overlay.classList.add("visible");
       overlay.style.display = "flex";
       document.body.style.overflow = "hidden";
+      updatePoolSuggestionTabs();
       renderPoolSuggestionsAdmin();
     }
 
@@ -2958,25 +3038,34 @@
 
       if (!isCurrentAdmin()) return;
 
-      const pending = getPendingPoolSuggestions();
+      updatePoolSuggestionTabs();
+
+      const pending = getFilteredPoolSuggestions();
 
       if (!pending.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
-        empty.textContent = "Keine offenen Pool-Vorschläge.";
+        const labels = {
+          all: "Keine offenen Pool-Vorschläge.",
+          food: "Keine offenen Futter-Vorschläge.",
+          change: "Keine offenen Änderungs-Vorschläge.",
+          option: "Keine offenen Listen-Vorschläge."
+        };
+        empty.textContent = labels[activePoolSuggestionFilter] || labels.all;
         list.appendChild(empty);
         return;
       }
 
       pending.forEach(item => {
-        const isChange = item.suggestionType === "change";
-        const isOption = item.suggestionType === "option";
+        const kindValue = getPoolSuggestionKind(item);
+        const isChange = kindValue === "change";
+        const isOption = kindValue === "option";
         const displayFood = isChange ? (item.newFood || item) : item;
         const oldFood = item.oldFood || {};
         const newFood = item.newFood || displayFood;
 
         const row = document.createElement("div");
-        row.className = "pool-suggestion-item";
+        row.className = "pool-suggestion-item" + (isOption ? " compact-option" : "");
 
         const kind = document.createElement("div");
         kind.className = "pool-suggestion-kind";
@@ -3025,7 +3114,6 @@
             compare.innerHTML = renderChangeComparison(oldFood, newFood);
             row.appendChild(compare);
           }
-
         }
 
         const actions = document.createElement("div");
