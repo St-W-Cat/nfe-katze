@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version67-vorschlaege-ablehnen-robust -->
+  <!-- Version: version68-vorschlaege-direkt-loeschen -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1532,7 +1532,7 @@
     </section>
 
     </div>
-    <div class="version-note">v67 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v68 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -3137,8 +3137,8 @@
         const reject = document.createElement("button");
         reject.type = "button";
         reject.className = "reject-pool-btn";
-        reject.textContent = "Ablehnen";
-        reject.onclick = () => rejectPoolSuggestion(item.id);
+        reject.textContent = "Löschen";
+        reject.onclick = () => deletePoolSuggestion(item.id);
 
         actions.appendChild(approve);
         actions.appendChild(reject);
@@ -3240,44 +3240,26 @@
       }
     }
 
-    async function rejectPoolSuggestion(id) {
+    async function deletePoolSuggestion(id) {
       if (!isCurrentAdmin()) return;
 
       const item = poolSuggestions.find(s => s.id === id);
       if (!item) return;
 
-      if (!confirm("Vorschlag wirklich ablehnen und aus der Liste entfernen?")) return;
-
-      const now = new Date().toISOString();
-
-      // Sofort aus der sichtbaren Liste entfernen, damit die Anzeige direkt stimmt.
-      poolSuggestions = poolSuggestions.map(entry => entry.id === id
-        ? { ...entry, status: "rejected", rejectedAt: now, rejectedBy: currentUser.email || "" }
-        : entry
-      );
-      updatePoolSuggestionsButtonLabel();
-      renderPoolSuggestionsAdmin();
+      if (!confirm("Vorschlag wirklich löschen?")) return;
 
       try {
-        const ref = poolSuggestionsCollection().doc(id);
+        await poolSuggestionsCollection().doc(id).delete();
 
-        // Erst markieren, damit der Vorschlag auch dann ausgeblendet bleibt,
-        // wenn das endgültige Löschen aus irgendeinem Grund nicht sofort klappt.
-        await ref.set({
-          status: "rejected",
-          rejectedAt: now,
-          rejectedBy: currentUser.email || "",
-          removedAt: now
-        }, { merge: true });
+        poolSuggestions = poolSuggestions.filter(entry => entry.id !== id);
+        updatePoolSuggestionsButtonLabel();
+        renderPoolSuggestionsAdmin();
 
-        try {
-          await ref.delete();
-          showMessage("poolSuggestionsNotice", "Vorschlag wurde abgelehnt und entfernt.");
-        } catch (deleteError) {
-          showMessage("poolSuggestionsNotice", "Vorschlag wurde abgelehnt und ausgeblendet.");
-        }
+        showMessage("poolSuggestionsNotice", "Vorschlag wurde gelöscht.");
       } catch (error) {
-        showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht abgelehnt werden: " + error.message);
+        const msg = "Vorschlag konnte nicht gelöscht werden: " + error.message;
+        showMessage("poolSuggestionsNotice", msg);
+        alert(msg);
       }
     }
 
