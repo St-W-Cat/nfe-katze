@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version71-mitteilungen -->
+  <!-- Version: version72-mitteilungen-blockieren-freigabe-nicht -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1619,7 +1619,7 @@
     </section>
 
     </div>
-    <div class="version-note">v71 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v72 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -3269,7 +3269,7 @@
           }, { merge: true });
 
           if (item.suggestedByUid) {
-            await createPersonalNotification(
+            await tryCreatePersonalNotification(
               item.suggestedByUid,
               "Listen-Vorschlag übernommen",
               "Dein Vorschlag „" + (item.optionValue || "") + "“ wurde in die Liste " + (item.optionTitle || "Auswahlliste") + " übernommen.",
@@ -3312,7 +3312,7 @@
           }, { merge: true });
 
           if (item.suggestedByUid) {
-            await createPersonalNotification(
+            await tryCreatePersonalNotification(
               item.suggestedByUid,
               "Änderungsvorschlag übernommen",
               "Dein Änderungsvorschlag zu „" + foodLabel(newFood) + "“ wurde übernommen.",
@@ -3320,7 +3320,7 @@
               id
             );
           }
-          await createGlobalFoodNotification("changed", { ...newFood, id: targetId }, targetId);
+          await tryCreateGlobalFoodNotification("changed", { ...newFood, id: targetId }, targetId);
 
           showMessage("poolSuggestionsNotice", "Änderung wurde freigegeben und in deiner Admin-Futterliste übernommen.");
           return;
@@ -3352,7 +3352,7 @@
         }, { merge: true });
 
         if (item.suggestedByUid) {
-          await createPersonalNotification(
+          await tryCreatePersonalNotification(
             item.suggestedByUid,
             "Futtervorschlag übernommen",
             "Dein Futtervorschlag „" + foodLabel(adminFoodItem) + "“ wurde in den Futterpool übernommen.",
@@ -3360,7 +3360,7 @@
             id
           );
         }
-        await createGlobalFoodNotification("added", adminFoodItem, foodId);
+        await tryCreateGlobalFoodNotification("added", adminFoodItem, foodId);
 
         showMessage("poolSuggestionsNotice", "Vorschlag wurde freigegeben und in deine Admin-Futterliste übernommen.");
       } catch (error) {
@@ -3657,6 +3657,22 @@
         createdAt: new Date().toISOString(),
         createdBy: currentUser?.email || ""
       };
+    }
+
+    async function tryCreatePersonalNotification(uid, title, text, type, relatedId) {
+      try {
+        await createPersonalNotification(uid, title, text, type, relatedId);
+      } catch (error) {
+        console.warn("Mitteilung konnte nicht erstellt werden:", error);
+      }
+    }
+
+    async function tryCreateGlobalFoodNotification(action, item, relatedId) {
+      try {
+        await createGlobalFoodNotification(action, item, relatedId);
+      } catch (error) {
+        console.warn("Globale Mitteilung konnte nicht erstellt werden:", error);
+      }
     }
 
     async function createPersonalNotification(uid, title, text, type, relatedId) {
@@ -4707,7 +4723,7 @@
         await collection.doc(item.id).set(item);
 
         if (isCurrentAdmin()) {
-          await createGlobalFoodNotification(wasEditing ? "changed" : "added", item, item.id);
+          await tryCreateGlobalFoodNotification(wasEditing ? "changed" : "added", item, item.id);
         }
 
         clearAfterSave(forceNew ? "Neues Futter gespeichert & synchronisiert." : (wasEditing ? "Änderung gespeichert & synchronisiert." : "Futter gespeichert & synchronisiert."));
@@ -4846,7 +4862,7 @@
 
       try {
         await userFoodsCollection().doc(id).delete();
-        await createGlobalFoodNotification("deleted", item, id);
+        await tryCreateGlobalFoodNotification("deleted", item, id);
       } catch (error) {
         showMessage("syncNotice", "Futterpool-Eintrag konnte nicht gelöscht werden: " + error.message);
       }
@@ -4882,7 +4898,7 @@
       try {
         await userFoodsCollection().doc(id).delete();
         if (isCurrentAdmin()) {
-          await createGlobalFoodNotification("deleted", item, id);
+          await tryCreateGlobalFoodNotification("deleted", item, id);
         }
         if (editingId === id) newFood();
       } catch (error) {
