@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version68-vorschlaege-direkt-loeschen -->
+  <!-- Version: version69-vorschlaege-sperrliste -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1532,7 +1532,7 @@
     </section>
 
     </div>
-    <div class="version-note">v68 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v69 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2126,10 +2126,12 @@
     let unsubscribeFoodPool = null;
     let unsubscribePoolFavorites = null;
     let unsubscribePoolSuggestions = null;
+    let unsubscribeDeletedPoolSuggestions = null;
     let accessUsers = [];
     let poolFoods = [];
     let poolFavoriteIds = new Set();
     let poolSuggestions = [];
+    let deletedPoolSuggestionIds = new Set();
     let poolFoodsLoading = true;
     let poolFavoritesLoading = true;
     let adminPoolSyncRunning = false;
@@ -2843,6 +2845,7 @@
     }
 
     function isOpenPoolSuggestion(item) {
+      if (!item || deletedPoolSuggestionIds.has(item.id)) return false;
       const status = String(item.status || "pending").toLocaleLowerCase("de");
       return status === "pending"
         && !item.approvedAt
@@ -3248,18 +3251,35 @@
 
       if (!confirm("Vorschlag wirklich löschen?")) return;
 
+      const now = new Date().toISOString();
+
+      // Sofort lokal ausblenden.
+      deletedPoolSuggestionIds.add(id);
+      poolSuggestions = poolSuggestions.filter(entry => entry.id !== id);
+      updatePoolSuggestionsButtonLabel();
+      renderPoolSuggestionsAdmin();
+
       try {
-        await poolSuggestionsCollection().doc(id).delete();
+        // Erst in Sperrliste eintragen. Dadurch bleibt der Vorschlag auch dann unsichtbar,
+        // wenn das eigentliche Löschen später nicht sofort greift oder ein Cache ihn zurückbringt.
+        await deletedPoolSuggestionsCollection().doc(id).set({
+          suggestionId: id,
+          deletedAt: now,
+          deletedBy: currentUser.email || ""
+        }, { merge: true });
 
-        poolSuggestions = poolSuggestions.filter(entry => entry.id !== id);
-        updatePoolSuggestionsButtonLabel();
-        renderPoolSuggestionsAdmin();
-
-        showMessage("poolSuggestionsNotice", "Vorschlag wurde gelöscht.");
+        try {
+          await poolSuggestionsCollection().doc(id).delete();
+          showMessage("poolSuggestionsNotice", "Vorschlag wurde gelöscht.");
+        } catch (deleteError) {
+          showMessage("poolSuggestionsNotice", "Vorschlag wurde ausgeblendet. Direktes Löschen wurde blockiert: " + deleteError.message);
+        }
       } catch (error) {
+        deletedPoolSuggestionIds.delete(id);
         const msg = "Vorschlag konnte nicht gelöscht werden: " + error.message;
         showMessage("poolSuggestionsNotice", msg);
         alert(msg);
+        renderPoolSuggestionsAdmin();
       }
     }
 
@@ -3477,6 +3497,10 @@
       return db.collection("poolSuggestions");
     }
 
+    function deletedPoolSuggestionsCollection() {
+      return db.collection("poolSuggestionDeletes");
+    }
+
     function userPoolFavoritesCollection() {
       if (!currentUser) return null;
       return db.collection("users").doc(currentUser.uid).collection("poolFavorites");
@@ -3500,10 +3524,15 @@
         try { unsubscribePoolSuggestions(); } catch (e) {}
         unsubscribePoolSuggestions = null;
       }
+      if (unsubscribeDeletedPoolSuggestions) {
+        try { unsubscribeDeletedPoolSuggestions(); } catch (e) {}
+        unsubscribeDeletedPoolSuggestions = null;
+      }
 
       poolFoods = [];
       poolFavoriteIds = new Set();
       poolSuggestions = [];
+      deletedPoolSuggestionIds = new Set();
       poolFoodsLoading = false;
       poolFavoritesLoading = false;
       updatePoolSuggestionsButtonLabel();
@@ -3549,6 +3578,23 @@
         poolFavoritesLoading = false;
         showMessage("syncNotice", "Futterpool-Favoriten konnten nicht geladen werden: " + error.message);
         renderFoods();
+      });
+    }
+
+    function subscribeToDeletedPoolSuggestions() {
+      if (unsubscribeDeletedPoolSuggestions) {
+        try { unsubscribeDeletedPoolSuggestions(); } catch (e) {}
+        unsubscribeDeletedPoolSuggestions = null;
+      }
+
+      if (!isCurrentAdmin()) return;
+
+      unsubscribeDeletedPoolSuggestions = deletedPoolSuggestionsCollection().onSnapshot(snapshot => {
+        deletedPoolSuggestionIds = new Set(snapshot.docs.map(doc => doc.id));
+        updatePoolSuggestionsButtonLabel();
+        renderPoolSuggestionsAdmin();
+      }, error => {
+        showMessage("syncNotice", "Gelöschte Vorschläge konnten nicht geladen werden: " + error.message);
       });
     }
 
@@ -4951,6 +4997,7 @@
         subscribeToFoodPool();
         subscribeToPoolFavorites();
         subscribeToUserAccess();
+        subscribeToDeletedPoolSuggestions();
         subscribeToPoolSuggestions();
         setTimeout(runVersion49AutoMigration, 900);
         resetTransientFieldsOnStart();
