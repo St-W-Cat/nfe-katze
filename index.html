@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version77-stabil-plus-loeschen -->
+  <!-- Version: version79-rollback-auf-v65-stabil -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1532,7 +1532,7 @@
     </section>
 
     </div>
-    <div class="version-note">v77 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v79 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2130,7 +2130,6 @@
     let poolFoods = [];
     let poolFavoriteIds = new Set();
     let poolSuggestions = [];
-    let hiddenPoolSuggestionIds = new Set(loadHiddenPoolSuggestionIds());
     let poolFoodsLoading = true;
     let poolFavoritesLoading = true;
     let adminPoolSyncRunning = false;
@@ -2844,10 +2843,7 @@
     }
 
     function getPendingPoolSuggestions() {
-      return poolSuggestions.filter(item => {
-        if (!item || hiddenPoolSuggestionIds.has(item.id)) return false;
-        return (item.status || "pending") === "pending";
-      });
+      return poolSuggestions.filter(item => (item.status || "pending") === "pending");
     }
 
     function getFilteredPoolSuggestions() {
@@ -3132,8 +3128,8 @@
         const reject = document.createElement("button");
         reject.type = "button";
         reject.className = "reject-pool-btn";
-        reject.textContent = "Löschen";
-        reject.onclick = () => deletePoolSuggestion(item.id);
+        reject.textContent = "Ablehnen";
+        reject.onclick = () => rejectPoolSuggestion(item.id);
 
         actions.appendChild(approve);
         actions.appendChild(reject);
@@ -3167,7 +3163,6 @@
             optionSaved: !!saved
           }, { merge: true });
 
-          hidePoolSuggestionLocally(id);
           showMessage("poolSuggestionsNotice", saved ? "Listeneintrag wurde gespeichert." : "Listeneintrag war bereits vorhanden.");
           return;
         }
@@ -3201,7 +3196,6 @@
             adminFoodId: targetId
           }, { merge: true });
 
-          hidePoolSuggestionLocally(id);
           showMessage("poolSuggestionsNotice", "Änderung wurde freigegeben und in deiner Admin-Futterliste übernommen.");
           return;
         }
@@ -3231,29 +3225,30 @@
           adminFoodId: foodId
         }, { merge: true });
 
-        hidePoolSuggestionLocally(id);
         showMessage("poolSuggestionsNotice", "Vorschlag wurde freigegeben und in deine Admin-Futterliste übernommen.");
       } catch (error) {
         showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht freigegeben werden: " + error.message);
       }
     }
 
-    async function deletePoolSuggestion(id) {
+    async function rejectPoolSuggestion(id) {
       if (!isCurrentAdmin()) return;
 
       const item = poolSuggestions.find(s => s.id === id);
-      if (!item && hiddenPoolSuggestionIds.has(id)) return;
+      if (!item) return;
 
-      if (!confirm("Vorschlag wirklich löschen?")) return;
-
-      hidePoolSuggestionLocally(id);
+      if (!confirm("Vorschlag ablehnen?")) return;
 
       try {
-        await poolSuggestionsCollection().doc(id).delete();
-        showMessage("poolSuggestionsNotice", "Vorschlag wurde gelöscht.");
+        await poolSuggestionsCollection().doc(id).set({
+          status: "rejected",
+          rejectedAt: new Date().toISOString(),
+          rejectedBy: currentUser.email || ""
+        }, { merge: true });
+
+        showMessage("poolSuggestionsNotice", "Vorschlag wurde abgelehnt.");
       } catch (error) {
-        console.warn("Vorschlag konnte nicht direkt aus Firebase gelöscht werden:", error);
-        showMessage("poolSuggestionsNotice", "Vorschlag wurde auf diesem Gerät ausgeblendet.");
+        showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht abgelehnt werden: " + error.message);
       }
     }
 
@@ -3436,7 +3431,6 @@
     const storeKey = "nfe_cat_foods_pwa_v2";
     const lastValuesKey = "nfe_cat_last_values_pwa_v2";
     const foodListCollapsedKey = "nfe_cat_food_items_collapsed_v1";
-    const hiddenPoolSuggestionLocalKey = "nfe_cat_hidden_pool_suggestions_v1";
     let foods = [];
     let currentUser = null;
     let unsubscribeFoods = null;
@@ -3448,31 +3442,6 @@
     const pawSvg = '<svg class="paw" viewBox="0 0 120 120" aria-hidden="true"><ellipse class="shape" cx="24" cy="50" rx="12" ry="19" transform="rotate(-31 24 50)"/><ellipse class="shape" cx="48" cy="27" rx="13" ry="22" transform="rotate(-9 48 27)"/><ellipse class="shape" cx="72" cy="27" rx="13" ry="22" transform="rotate(9 72 27)"/><ellipse class="shape" cx="96" cy="50" rx="12" ry="19" transform="rotate(31 96 50)"/><path class="shape" d="M34 102 C20 94 22 77 36 69 C43 65 42 55 51 50 C57 46 65 46 71 50 C80 55 79 65 86 69 C100 77 102 94 86 102 C77 107 70 101 62 101 C53 101 45 108 34 102 Z"/></svg>';
 
     function el(id){ return document.getElementById(id); }
-
-    function loadHiddenPoolSuggestionIds() {
-      try {
-        const raw = localStorage.getItem(hiddenPoolSuggestionLocalKey);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
-      } catch (e) {
-        return [];
-      }
-    }
-
-    function saveHiddenPoolSuggestionIds() {
-      try {
-        localStorage.setItem(hiddenPoolSuggestionLocalKey, JSON.stringify([...hiddenPoolSuggestionIds]));
-      } catch (e) {}
-    }
-
-    function hidePoolSuggestionLocally(id) {
-      if (!id) return;
-      hiddenPoolSuggestionIds.add(id);
-      saveHiddenPoolSuggestionIds();
-      poolSuggestions = poolSuggestions.filter(entry => entry.id !== id);
-      updatePoolSuggestionsButtonLabel();
-      renderPoolSuggestionsAdmin();
-    }
 
     function getStoredFoods() {
       try {
@@ -3524,7 +3493,6 @@
       poolFoods = [];
       poolFavoriteIds = new Set();
       poolSuggestions = [];
-      hiddenPoolSuggestionIds = new Set(loadHiddenPoolSuggestionIds());
       poolFoodsLoading = false;
       poolFavoritesLoading = false;
       updatePoolSuggestionsButtonLabel();
