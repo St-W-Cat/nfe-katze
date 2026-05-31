@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version56-freigabe-fix -->
+  <!-- Version: version57-futterpool-adminliste -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1404,7 +1404,7 @@
     </section>
 
     </div>
-    <div class="version-note">v56 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v57 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -1996,6 +1996,8 @@
     let poolSuggestions = [];
     let poolFoodsLoading = true;
     let poolFavoritesLoading = true;
+    let adminPoolSyncRunning = false;
+    let adminPoolSyncQueued = false;
     let currentAccessStatus = "unknown";
 
     function normalizeOptionValue(value) {
@@ -2796,28 +2798,33 @@
 
       const now = new Date().toISOString();
 
-      const poolItem = {
+      const foodId = String(Date.now());
+      const adminFoodItem = {
+        id: foodId,
         brand: item.brand || "",
         sort: item.sort || "",
         packaging: item.packaging || "",
         weight: item.weight || "",
         lifeAge: item.lifeAge || "",
+        favorite: false,
+        savedAt: now,
         values: item.values || {},
         result: item.result || {},
-        createdAt: now,
-        createdBy: currentUser.email || "",
-        sourceSuggestionId: id
+        sourceSuggestionId: id,
+        suggestedByUid: item.suggestedByUid || "",
+        suggestedByEmail: item.suggestedByEmail || ""
       };
 
       try {
-        await foodPoolCollection().add(poolItem);
+        await userFoodsCollection().doc(foodId).set(adminFoodItem);
         await poolSuggestionsCollection().doc(id).set({
           status: "approved",
           approvedAt: now,
-          approvedBy: currentUser.email || ""
+          approvedBy: currentUser.email || "",
+          adminFoodId: foodId
         }, { merge: true });
 
-        showMessage("poolSuggestionsNotice", "Vorschlag wurde freigegeben.");
+        showMessage("poolSuggestionsNotice", "Vorschlag wurde freigegeben und in deine Admin-Futterliste übernommen.");
       } catch (error) {
         showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht freigegeben werden: " + error.message);
       }
@@ -3058,6 +3065,125 @@
       });
     }
 
+    function buildPoolMirrorFromAdminFood(item) {
+      return {
+        brand: item.brand || "",
+        sort: item.sort || "",
+        packaging: item.packaging || "",
+        weight: item.weight || "",
+        lifeAge: item.lifeAge || "",
+        values: item.values || {},
+        result: item.result || {},
+        source: "adminFoodMirror",
+        sourceFoodId: item.id,
+        sourceAdminUid: currentUser?.uid || "",
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser?.email || ""
+      };
+    }
+
+    function sameJson(a, b) {
+      return JSON.stringify(a || {}) === JSON.stringify(b || {});
+    }
+
+    async function syncAdminFoodsToPool() {
+      if (!isCurrentAdmin() || !currentUser) return;
+
+      if (adminPoolSyncRunning) {
+        adminPoolSyncQueued = true;
+        return;
+      }
+
+      adminPoolSyncRunning = true;
+      adminPoolSyncQueued = false;
+
+      try {
+        const poolSnapshot = await foodPoolCollection().get();
+        const currentIds = new Set(foods.map(item => item.id));
+        const existingDocs = new Map(poolSnapshot.docs.map(doc => [doc.id, doc]));
+
+        let batch = db.batch();
+        let batchCount = 0;
+        let changed = 0;
+
+        async function commitIfNeeded(force) {
+          if (batchCount >= 450 || (force && batchCount > 0)) {
+            await batch.commit();
+            batch = db.batch();
+            batchCount = 0;
+          }
+        }
+
+        for (const item of foods) {
+          const ref = foodPoolCollection().doc(item.id);
+          const mirror = buildPoolMirrorFromAdminFood(item);
+          const existing = existingDocs.get(item.id);
+
+          let shouldWrite = true;
+          if (existing) {
+            const data = existing.data() || {};
+            const comparableExisting = {
+              brand: data.brand || "",
+              sort: data.sort || "",
+              packaging: data.packaging || "",
+              weight: data.weight || "",
+              lifeAge: data.lifeAge || "",
+              values: data.values || {},
+              result: data.result || {},
+              source: data.source || "",
+              sourceFoodId: data.sourceFoodId || "",
+              sourceAdminUid: data.sourceAdminUid || ""
+            };
+            const comparableMirror = {
+              brand: mirror.brand,
+              sort: mirror.sort,
+              packaging: mirror.packaging,
+              weight: mirror.weight,
+              lifeAge: mirror.lifeAge,
+              values: mirror.values,
+              result: mirror.result,
+              source: mirror.source,
+              sourceFoodId: mirror.sourceFoodId,
+              sourceAdminUid: mirror.sourceAdminUid
+            };
+            shouldWrite = !sameJson(comparableExisting, comparableMirror);
+          }
+
+          if (shouldWrite) {
+            batch.set(ref, mirror, { merge: true });
+            batchCount++;
+            changed++;
+            await commitIfNeeded(false);
+          }
+        }
+
+        // Der Futterpool soll der Admin-Futterliste entsprechen:
+        // alles, was nicht mehr in der Admin-Liste ist, wird aus dem Pool entfernt.
+        for (const doc of poolSnapshot.docs) {
+          if (!currentIds.has(doc.id)) {
+            batch.delete(doc.ref);
+            batchCount++;
+            changed++;
+            await commitIfNeeded(false);
+          }
+        }
+
+        await commitIfNeeded(true);
+
+        if (changed > 0) {
+          console.log("Futterpool mit Admin-Liste synchronisiert:", changed);
+        }
+      } catch (error) {
+        console.warn("Futterpool-Sync fehlgeschlagen:", error);
+        showMessage("syncNotice", "Futterpool konnte nicht mit Admin-Liste synchronisiert werden: " + error.message);
+      } finally {
+        adminPoolSyncRunning = false;
+        if (adminPoolSyncQueued) {
+          setTimeout(syncAdminFoodsToPool, 400);
+        }
+      }
+    }
+
     function subscribeToFoods() {
       if (unsubscribeFoods) {
         unsubscribeFoods();
@@ -3074,6 +3200,9 @@
         foodsLoading = false;
         foods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderFoods();
+        if (isCurrentAdmin()) {
+          setTimeout(syncAdminFoodsToPool, 300);
+        }
       }, error => {
         foodsLoading = false;
         showMessage("syncNotice", "Futter-Liste konnte nicht geladen werden: " + error.message);
@@ -3585,10 +3714,10 @@
       const item = poolFoods.find(f => f.id === id);
       if (!item) return;
 
-      if (!confirm("Futter aus dem Futterpool löschen?")) return;
+      if (!confirm("Futter aus deiner Admin-Futterliste und damit aus dem Futterpool löschen?")) return;
 
       try {
-        await foodPoolCollection().doc(id).delete();
+        await userFoodsCollection().doc(id).delete();
       } catch (error) {
         showMessage("syncNotice", "Futterpool-Eintrag konnte nicht gelöscht werden: " + error.message);
       }
@@ -3812,7 +3941,7 @@
       if (!sortedFoods.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
-        empty.textContent = activeFoodFilter === "pool" ? "Noch kein Futter im Futterpool." : "Kein passendes Futter gefunden.";
+        empty.textContent = activeFoodFilter === "pool" ? "Noch kein Futter im Futterpool. Admin muss die App einmal öffnen, damit die Admin-Futterliste synchronisiert wird." : "Kein passendes Futter gefunden.";
         list.appendChild(empty);
         return;
       }
