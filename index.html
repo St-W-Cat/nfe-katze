@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version55-futterpool -->
+  <!-- Version: version56-freigabe-fix -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1404,7 +1404,7 @@
     </section>
 
     </div>
-    <div class="version-note">v55 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v56 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2496,11 +2496,17 @@
       const data = snapshot.data() || {};
       const status = data.status || "pending";
 
-      await ref.set({
-        uid: currentUser.uid,
-        email,
-        lastSeenAt: now
-      }, { merge: true });
+      try {
+        await ref.set({
+          uid: currentUser.uid,
+          email,
+          lastSeenAt: now
+        }, { merge: true });
+      } catch (error) {
+        // Freigegebene Nutzer dürfen trotzdem hinein.
+        // Der Zeitstempel ist nur eine Zusatzinfo für Admin.
+        console.warn("LastSeen konnte nicht gespeichert werden:", error);
+      }
 
       return status;
     }
