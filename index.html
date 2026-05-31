@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version81-v62-plus-listen-und-reiter -->
+  <!-- Version: version62-admin-ohne-futter-vorschlagen -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -629,34 +629,10 @@
     .pool-suggestions-card {
       grid-template-rows: auto auto 1fr;
     }
-    .pool-suggestion-tabs {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      padding: 2px 0 8px;
-      scrollbar-width: none;
-    }
-    .pool-suggestion-tabs::-webkit-scrollbar {
-      display: none;
-    }
-    .pool-suggestion-tab {
-      min-width: 0;
-      padding: 8px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 900;
-      background: #edf5ff;
-      color: #1d5f8f;
-      white-space: nowrap;
-    }
-    .pool-suggestion-tab.active {
-      background: #4da9df;
-      color: #ffffff;
-    }
     .pool-suggestions-list {
       display: grid;
       align-content: start;
-      gap: 7px;
+      gap: 8px;
       min-height: 0;
       overflow: auto;
       overscroll-behavior: contain;
@@ -746,41 +722,6 @@
     .pool-change-col div {
       margin-top: 3px;
       line-height: 1.35;
-    }
-    .chooser-suggest-option {
-      background: #e2f3ff;
-      color: #1d5f8f;
-    }
-    .pool-suggestion-item.compact-option {
-      background: #fcfeff;
-    }
-    .pool-option-missing {
-      display: grid;
-      gap: 5px;
-      background: #f4fbff;
-      border: 1px solid #b8ddf5;
-      border-radius: 14px;
-      padding: 7px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .pool-option-missing-title {
-      color: #1d5f8f;
-      font-weight: 900;
-    }
-    .pool-option-value {
-      color: var(--text);
-      font-weight: 800;
-      word-break: break-word;
-    }
-    .approve-option-btn {
-      min-width: 0;
-      padding: 7px 9px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 900;
-      background: #e3f6ec;
-      color: var(--green);
     }
     .approve-pool-btn {
       background: #e3f6ec;
@@ -1404,7 +1345,6 @@
           <div id="chooserList" class="chooser-list"></div>
           <div class="chooser-actions">
             <button type="button" class="secondary" onclick="useFreeChooserText()">Eingabe übernehmen</button>
-            <button id="chooserSuggestButton" type="button" class="secondary chooser-suggest-option" onclick="suggestChooserTextAsOption()" style="display:none">Eintrag vorschlagen</button>
             <button id="chooserSaveNewButton" type="button" class="secondary chooser-save-new" onclick="saveChooserTextAsOption()" style="display:none">neu speichern</button>
           </div>
         </div>
@@ -1475,14 +1415,6 @@
         </div>
 
         <div id="poolSuggestionsNotice" class="notice"></div>
-
-        <div class="pool-suggestion-tabs">
-          <button type="button" class="pool-suggestion-tab active" data-pool-suggestion-filter="all" onclick="setPoolSuggestionFilter('all')">Alle</button>
-          <button type="button" class="pool-suggestion-tab" data-pool-suggestion-filter="food" onclick="setPoolSuggestionFilter('food')">Futter</button>
-          <button type="button" class="pool-suggestion-tab" data-pool-suggestion-filter="change" onclick="setPoolSuggestionFilter('change')">Änderungen</button>
-          <button type="button" class="pool-suggestion-tab" data-pool-suggestion-filter="option" onclick="setPoolSuggestionFilter('option')">Listen</button>
-        </div>
-
         <div id="poolSuggestionsList" class="pool-suggestions-list"></div>
       </section>
     </div>
@@ -1525,7 +1457,7 @@
     </section>
 
     </div>
-    <div class="version-note">v81 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v62 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2105,14 +2037,6 @@
       lifeAgeOptions: "lifeAge"
     };
 
-    const optionFieldLabels = {
-      brandOptions: "Marke",
-      sortOptions: "Sorte",
-      packagingOptions: "Verpackung",
-      weightOptions: "Gewicht",
-      lifeAgeOptions: "Lebensalter"
-    };
-
     let version49MigrationStarted = false;
     let unsubscribeOptions = [];
     let unsubscribeUserAccess = null;
@@ -2128,7 +2052,6 @@
     let adminPoolSyncRunning = false;
     let adminPoolSyncQueued = false;
     let selectedPoolFoodIdForChange = null;
-    let activePoolSuggestionFilter = "all";
     let currentAccessStatus = "unknown";
 
     function normalizeOptionValue(value) {
@@ -2829,49 +2752,8 @@
       if (!isCurrentAdmin()) closePoolSuggestionsAdmin();
     }
 
-    function getPoolSuggestionKind(item) {
-      if (item.suggestionType === "option") return "option";
-      if (item.suggestionType === "change") return "change";
-      return "food";
-    }
-
     function getPendingPoolSuggestions() {
       return poolSuggestions.filter(item => (item.status || "pending") === "pending");
-    }
-
-    function getFilteredPoolSuggestions() {
-      const pending = getPendingPoolSuggestions();
-      if (activePoolSuggestionFilter === "all") return pending;
-      return pending.filter(item => getPoolSuggestionKind(item) === activePoolSuggestionFilter);
-    }
-
-    function setPoolSuggestionFilter(filter) {
-      activePoolSuggestionFilter = filter || "all";
-      updatePoolSuggestionTabs();
-      renderPoolSuggestionsAdmin();
-    }
-
-    function updatePoolSuggestionTabs() {
-      const pending = getPendingPoolSuggestions();
-      const counts = {
-        all: pending.length,
-        food: pending.filter(item => getPoolSuggestionKind(item) === "food").length,
-        change: pending.filter(item => getPoolSuggestionKind(item) === "change").length,
-        option: pending.filter(item => getPoolSuggestionKind(item) === "option").length
-      };
-
-      const labels = {
-        all: "Alle",
-        food: "Futter",
-        change: "Änderungen",
-        option: "Listen"
-      };
-
-      document.querySelectorAll(".pool-suggestion-tab").forEach(btn => {
-        const filter = btn.dataset.poolSuggestionFilter;
-        btn.classList.toggle("active", filter === activePoolSuggestionFilter);
-        btn.textContent = labels[filter] + " (" + (counts[filter] || 0) + ")";
-      });
     }
 
     function updatePoolSuggestionsButtonLabel() {
@@ -2882,8 +2764,6 @@
       btn.innerHTML = pendingCount
         ? 'Pool Vorschläge <span class="pending-count-dot">' + pendingCount + '</span>'
         : "Pool Vorschläge";
-
-      updatePoolSuggestionTabs();
     }
 
     function openPoolSuggestionsAdmin() {
@@ -2893,7 +2773,6 @@
       overlay.classList.add("visible");
       overlay.style.display = "flex";
       document.body.style.overflow = "hidden";
-      updatePoolSuggestionTabs();
       renderPoolSuggestionsAdmin();
     }
 
@@ -2954,82 +2833,56 @@
 
       if (!isCurrentAdmin()) return;
 
-      updatePoolSuggestionTabs();
-
-      const pending = getFilteredPoolSuggestions();
+      const pending = getPendingPoolSuggestions();
 
       if (!pending.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
-        const labels = {
-          all: "Keine offenen Pool-Vorschläge.",
-          food: "Keine offenen Futter-Vorschläge.",
-          change: "Keine offenen Änderungs-Vorschläge.",
-          option: "Keine offenen Listen-Vorschläge."
-        };
-        empty.textContent = labels[activePoolSuggestionFilter] || labels.all;
+        empty.textContent = "Keine offenen Pool-Vorschläge.";
         list.appendChild(empty);
         return;
       }
 
       pending.forEach(item => {
-        const kindValue = getPoolSuggestionKind(item);
-        const isChange = kindValue === "change";
-        const isOption = kindValue === "option";
+        const isChange = item.suggestionType === "change";
         const displayFood = isChange ? (item.newFood || item) : item;
         const oldFood = item.oldFood || {};
         const newFood = item.newFood || displayFood;
 
         const row = document.createElement("div");
-        row.className = "pool-suggestion-item" + (isOption ? " compact-option" : "");
+        row.className = "pool-suggestion-item";
 
         const kind = document.createElement("div");
         kind.className = "pool-suggestion-kind";
-        kind.textContent = isOption ? "Listen-Vorschlag" : (isChange ? "Änderungsvorschlag" : "Neues Futter");
+        kind.textContent = isChange ? "Änderungsvorschlag" : "Neues Futter";
 
         const title = document.createElement("div");
         title.className = "pool-suggestion-title";
-
-        if (isOption) {
-          title.textContent = (item.optionTitle || optionFieldLabels[item.optionKey] || "Liste") + ": " + (item.optionValue || "");
-        } else {
-          title.textContent = [displayFood.brand || "Unbenanntes Futter", displayFood.sort].filter(Boolean).join(" – ");
-        }
+        title.textContent = [displayFood.brand || "Unbenanntes Futter", displayFood.sort].filter(Boolean).join(" – ");
 
         const meta = document.createElement("div");
         meta.className = "pool-suggestion-meta";
         meta.textContent = "Von: " + (item.suggestedByEmail || "unbekannt") + " · " + (item.createdAt || "–");
 
+        const values = document.createElement("div");
+        values.className = "pool-suggestion-values";
+        values.innerHTML = renderSuggestionFoodSummary(displayFood);
+
+        const analysis = document.createElement("div");
+        analysis.className = "pool-suggestion-analysis";
+        analysis.innerHTML = renderSuggestionAnalysis(displayFood);
+
         row.appendChild(kind);
         row.appendChild(title);
         row.appendChild(meta);
+        row.appendChild(values);
+        row.appendChild(analysis);
 
-        if (isOption) {
-          const optionBox = document.createElement("div");
-          optionBox.className = "pool-option-missing";
-          optionBox.innerHTML =
-            "<div class=\"pool-option-missing-title\">Vorgeschlagener Listeneintrag</div>"
-            + "<div>" + xmlEscape(item.optionTitle || optionFieldLabels[item.optionKey] || "Liste")
-            + ": <span class=\"pool-option-value\">" + xmlEscape(item.optionValue || "") + "</span></div>";
-          row.appendChild(optionBox);
-        } else {
-          const values = document.createElement("div");
-          values.className = "pool-suggestion-values";
-          values.innerHTML = renderSuggestionFoodSummary(displayFood);
-
-          const analysis = document.createElement("div");
-          analysis.className = "pool-suggestion-analysis";
-          analysis.innerHTML = renderSuggestionAnalysis(displayFood);
-
-          row.appendChild(values);
-          row.appendChild(analysis);
-
-          if (isChange) {
-            const compare = document.createElement("div");
-            compare.className = "pool-change-compare";
-            compare.innerHTML = renderChangeComparison(oldFood, newFood);
-            row.appendChild(compare);
-          }
+        if (isChange) {
+          const compare = document.createElement("div");
+          compare.className = "pool-change-compare";
+          compare.innerHTML = renderChangeComparison(oldFood, newFood);
+          row.appendChild(compare);
         }
 
         const actions = document.createElement("div");
@@ -3037,8 +2890,8 @@
 
         const approve = document.createElement("button");
         approve.type = "button";
-        approve.className = isOption ? "approve-option-btn" : "approve-pool-btn";
-        approve.textContent = isOption ? "Eintrag speichern" : (isChange ? "Änderung freigeben" : "Freigeben");
+        approve.className = "approve-pool-btn";
+        approve.textContent = isChange ? "Änderung freigeben" : "Freigeben";
         approve.onclick = () => approvePoolSuggestion(item.id);
 
         const reject = document.createElement("button");
@@ -3062,27 +2915,12 @@
       if (!item) return;
 
       const isChange = item.suggestionType === "change";
-      const isOption = item.suggestionType === "option";
 
-      if (!confirm(isOption ? "Listeneintrag speichern?" : (isChange ? "Änderung im Futterpool freigeben?" : "Vorschlag in den Futterpool übernehmen?"))) return;
+      if (!confirm(isChange ? "Änderung im Futterpool freigeben?" : "Vorschlag in den Futterpool übernehmen?")) return;
 
       const now = new Date().toISOString();
 
       try {
-        if (isOption) {
-          const saved = await addOptionValue(item.optionKey, item.optionValue, true);
-
-          await poolSuggestionsCollection().doc(id).set({
-            status: "approved",
-            approvedAt: now,
-            approvedBy: currentUser.email || "",
-            optionSaved: !!saved
-          }, { merge: true });
-
-          showMessage("poolSuggestionsNotice", saved ? "Listeneintrag wurde gespeichert." : "Listeneintrag war bereits vorhanden.");
-          return;
-        }
-
         if (isChange) {
           const targetId = item.targetAdminFoodId || item.targetPoolFoodId;
           const newFood = item.newFood || item;
@@ -3186,8 +3024,6 @@
       el("chooserSearch").value = el(inputId).value || "";
       const saveBtn = el("chooserSaveNewButton");
       if (saveBtn) saveBtn.style.display = isCurrentAdmin() ? "inline-flex" : "none";
-      const suggestBtn = el("chooserSuggestButton");
-      if (suggestBtn) suggestBtn.style.display = isCurrentAdmin() ? "none" : "inline-flex";
       el("chooserOverlay").classList.add("visible");
       renderChooserList();
       setTimeout(() => el("chooserSearch").focus(), 80);
@@ -3245,93 +3081,6 @@
       if (saved && chooserTargetInput) {
         el(chooserTargetInput).value = normalizeOptionValue(value);
       }
-    }
-
-    function optionValueExists(key, value) {
-      const clean = normalizeOptionValue(value).toLocaleLowerCase("de");
-      if (!clean) return true;
-      return (suggestionOptions[key] || []).some(item => normalizeOptionValue(item).toLocaleLowerCase("de") === clean);
-    }
-
-    function getMissingOptionsForFood(food) {
-      const missing = [];
-      Object.entries(version49FoodFields).forEach(([key, field]) => {
-        const value = normalizeOptionValue(food?.[field] || "");
-        if (!value) return;
-        if (!optionValueExists(key, value)) {
-          missing.push({
-            key,
-            label: optionFieldLabels[key] || optionDocs[key]?.title || key,
-            value
-          });
-        }
-      });
-      return missing;
-    }
-
-    async function suggestOptionValue(key, value, source, linkedSuggestionId) {
-      if (!currentUser) {
-        showMessage("notice", "Bitte zuerst einloggen.");
-        return false;
-      }
-
-      const clean = normalizeOptionValue(value);
-      if (!clean || !key) {
-        showMessage("notice", "Bitte zuerst einen Eintrag eingeben.");
-        return false;
-      }
-
-      if (optionValueExists(key, clean)) {
-        showMessage("notice", "Dieser Eintrag ist bereits in der Liste vorhanden.");
-        return false;
-      }
-
-      const suggestion = {
-        suggestionType: "option",
-        optionKey: key,
-        optionTitle: optionFieldLabels[key] || optionDocs[key]?.title || key,
-        optionValue: clean,
-        source: source || "chooser",
-        linkedSuggestionId: linkedSuggestionId || "",
-        status: "pending",
-        createdAt: new Date().toISOString(),
-        suggestedByUid: currentUser.uid,
-        suggestedByEmail: currentUser.email || ""
-      };
-
-      try {
-        await poolSuggestionsCollection().add(suggestion);
-        showMessage("notice", "Eintrag wurde als Listen-Vorschlag gesendet.");
-        return true;
-      } catch (error) {
-        showMessage("notice", "Listen-Vorschlag konnte nicht gesendet werden: " + error.message);
-        return false;
-      }
-    }
-
-    async function suggestChooserTextAsOption() {
-      const value = el("chooserSearch").value.trim();
-      if (!value || !chooserOptionsId) return;
-
-      const sent = await suggestOptionValue(chooserOptionsId, value, "chooser", "");
-      if (sent && chooserTargetInput) {
-        el(chooserTargetInput).value = normalizeOptionValue(value);
-        closeChooser();
-      }
-    }
-
-    async function createOptionSuggestionsForFood(food, source, linkedSuggestionId) {
-      if (!currentUser || isCurrentAdmin()) return 0;
-
-      const missing = getMissingOptionsForFood(food);
-      let count = 0;
-
-      for (const item of missing) {
-        const sent = await suggestOptionValue(item.key, item.value, source || "foodSuggestion", linkedSuggestionId || "");
-        if (sent) count++;
-      }
-
-      return count;
     }
 
     function clearField(id) {
@@ -3994,7 +3743,6 @@
       const item = buildFoodItemFromForm(String(Date.now()), false);
 
       const suggestion = {
-        suggestionType: "newFood",
         brand: item.brand,
         sort: item.sort,
         packaging: item.packaging,
@@ -4009,11 +3757,8 @@
       };
 
       try {
-        const docRef = await poolSuggestionsCollection().add(suggestion);
-        const optionCount = await createOptionSuggestionsForFood(item, "newFood", docRef.id);
-        showMessage("notice", optionCount
-          ? "Futter wurde vorgeschlagen. Zusätzlich wurden " + optionCount + " Listen-Vorschläge gesendet."
-          : "Futter wurde als Pool-Vorschlag gesendet.");
+        await poolSuggestionsCollection().add(suggestion);
+        showMessage("notice", "Futter wurde als Pool-Vorschlag gesendet.");
       } catch (error) {
         showMessage("notice", "Vorschlag konnte nicht gesendet werden: " + error.message);
       }
@@ -4070,11 +3815,8 @@
       };
 
       try {
-        const docRef = await poolSuggestionsCollection().add(suggestion);
-        const optionCount = await createOptionSuggestionsForFood(newFood, "changeSuggestion", docRef.id);
-        showMessage("notice", optionCount
-          ? "Änderung wurde vorgeschlagen. Zusätzlich wurden " + optionCount + " Listen-Vorschläge gesendet."
-          : "Änderung wurde als Pool-Vorschlag gesendet.");
+        await poolSuggestionsCollection().add(suggestion);
+        showMessage("notice", "Änderung wurde als Pool-Vorschlag gesendet.");
       } catch (error) {
         showMessage("notice", "Änderungsvorschlag konnte nicht gesendet werden: " + error.message);
       }
