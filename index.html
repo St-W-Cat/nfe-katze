@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version62-admin-ohne-futter-vorschlagen -->
+  <!-- Version: version63-listen-vorschlaege -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -723,6 +723,45 @@
       margin-top: 3px;
       line-height: 1.35;
     }
+    .chooser-suggest-option {
+      background: #e2f3ff;
+      color: #1d5f8f;
+    }
+    .pool-option-missing {
+      display: grid;
+      gap: 7px;
+      background: #f4fbff;
+      border: 1px solid #b8ddf5;
+      border-radius: 14px;
+      padding: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .pool-option-missing-title {
+      color: #1d5f8f;
+      font-weight: 900;
+    }
+    .pool-option-missing-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+    .pool-option-missing-row button,
+    .approve-option-btn {
+      min-width: 0;
+      padding: 7px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      background: #e3f6ec;
+      color: var(--green);
+    }
+    .pool-option-value {
+      color: var(--text);
+      font-weight: 800;
+      word-break: break-word;
+    }
     .approve-pool-btn {
       background: #e3f6ec;
       color: var(--green);
@@ -1345,6 +1384,7 @@
           <div id="chooserList" class="chooser-list"></div>
           <div class="chooser-actions">
             <button type="button" class="secondary" onclick="useFreeChooserText()">Eingabe übernehmen</button>
+            <button id="chooserSuggestButton" type="button" class="secondary chooser-suggest-option" onclick="suggestChooserTextAsOption()" style="display:none">Eintrag vorschlagen</button>
             <button id="chooserSaveNewButton" type="button" class="secondary chooser-save-new" onclick="saveChooserTextAsOption()" style="display:none">neu speichern</button>
           </div>
         </div>
@@ -1457,7 +1497,7 @@
     </section>
 
     </div>
-    <div class="version-note">v62 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v63 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2035,6 +2075,14 @@
       packagingOptions: "packaging",
       weightOptions: "weight",
       lifeAgeOptions: "lifeAge"
+    };
+
+    const optionFieldLabels = {
+      brandOptions: "Marke",
+      sortOptions: "Sorte",
+      packagingOptions: "Verpackung",
+      weightOptions: "Gewicht",
+      lifeAgeOptions: "Lebensalter"
     };
 
     let version49MigrationStarted = false;
@@ -2785,6 +2833,83 @@
       document.body.style.overflow = "";
     }
 
+    function getMissingOptionsForFood(food) {
+      const missing = [];
+      Object.entries(version49FoodFields).forEach(([key, field]) => {
+        const value = normalizeOptionValue(food?.[field] || "");
+        if (!value) return;
+        if (!optionValueExists(key, value)) {
+          missing.push({
+            key,
+            label: optionFieldLabels[key] || optionDocs[key]?.title || key,
+            value
+          });
+        }
+      });
+      return missing;
+    }
+
+    async function approveMissingOptionFromSuggestion(suggestionId, key, value) {
+      if (!isCurrentAdmin()) return;
+
+      const clean = normalizeOptionValue(value);
+      if (!clean || !key) return;
+
+      try {
+        if (optionValueExists(key, clean)) {
+          showMessage("poolSuggestionsNotice", "Eintrag ist bereits in der Liste vorhanden.");
+          renderPoolSuggestionsAdmin();
+          return;
+        }
+
+        const saved = await addOptionValue(key, clean, true);
+        if (saved) {
+          await poolSuggestionsCollection().doc(suggestionId).set({
+            savedOptionValues: firebase.firestore.FieldValue.arrayUnion(key + "::" + clean),
+            updatedAt: new Date().toISOString(),
+            updatedBy: currentUser.email || ""
+          }, { merge: true });
+
+          renderPoolSuggestionsAdmin();
+          showMessage("poolSuggestionsNotice", "Listeneintrag wurde gespeichert.");
+        }
+      } catch (error) {
+        showMessage("poolSuggestionsNotice", "Listeneintrag konnte nicht gespeichert werden: " + error.message);
+      }
+    }
+
+    function renderMissingOptionsBox(suggestionId, food) {
+      const missing = getMissingOptionsForFood(food);
+      if (!missing.length) return null;
+
+      const box = document.createElement("div");
+      box.className = "pool-option-missing";
+
+      const title = document.createElement("div");
+      title.className = "pool-option-missing-title";
+      title.textContent = "Neue Einträge für Auswahllisten";
+      box.appendChild(title);
+
+      missing.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "pool-option-missing-row";
+
+        const text = document.createElement("div");
+        text.innerHTML = "<span>" + xmlEscape(item.label) + ":</span> <span class=\"pool-option-value\">" + xmlEscape(item.value) + "</span>";
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = "in Liste speichern";
+        btn.onclick = () => approveMissingOptionFromSuggestion(suggestionId, item.key, item.value);
+
+        row.appendChild(text);
+        row.appendChild(btn);
+        box.appendChild(row);
+      });
+
+      return box;
+    }
+
     function renderSuggestionFoodSummary(food) {
       const details = [food.packaging, food.weight, food.lifeAge].filter(Boolean).join(" · ");
       return (details ? xmlEscape(details) + "<br>" : "")
@@ -2845,6 +2970,7 @@
 
       pending.forEach(item => {
         const isChange = item.suggestionType === "change";
+        const isOption = item.suggestionType === "option";
         const displayFood = isChange ? (item.newFood || item) : item;
         const oldFood = item.oldFood || {};
         const newFood = item.newFood || displayFood;
@@ -2854,35 +2980,54 @@
 
         const kind = document.createElement("div");
         kind.className = "pool-suggestion-kind";
-        kind.textContent = isChange ? "Änderungsvorschlag" : "Neues Futter";
+        kind.textContent = isOption ? "Listen-Vorschlag" : (isChange ? "Änderungsvorschlag" : "Neues Futter");
 
         const title = document.createElement("div");
         title.className = "pool-suggestion-title";
-        title.textContent = [displayFood.brand || "Unbenanntes Futter", displayFood.sort].filter(Boolean).join(" – ");
+
+        if (isOption) {
+          title.textContent = (item.optionTitle || optionFieldLabels[item.optionKey] || "Liste") + ": " + (item.optionValue || "");
+        } else {
+          title.textContent = [displayFood.brand || "Unbenanntes Futter", displayFood.sort].filter(Boolean).join(" – ");
+        }
 
         const meta = document.createElement("div");
         meta.className = "pool-suggestion-meta";
         meta.textContent = "Von: " + (item.suggestedByEmail || "unbekannt") + " · " + (item.createdAt || "–");
 
-        const values = document.createElement("div");
-        values.className = "pool-suggestion-values";
-        values.innerHTML = renderSuggestionFoodSummary(displayFood);
-
-        const analysis = document.createElement("div");
-        analysis.className = "pool-suggestion-analysis";
-        analysis.innerHTML = renderSuggestionAnalysis(displayFood);
-
         row.appendChild(kind);
         row.appendChild(title);
         row.appendChild(meta);
-        row.appendChild(values);
-        row.appendChild(analysis);
 
-        if (isChange) {
-          const compare = document.createElement("div");
-          compare.className = "pool-change-compare";
-          compare.innerHTML = renderChangeComparison(oldFood, newFood);
-          row.appendChild(compare);
+        if (isOption) {
+          const optionBox = document.createElement("div");
+          optionBox.className = "pool-option-missing";
+          optionBox.innerHTML =
+            "<div class=\"pool-option-missing-title\">Vorgeschlagener Listeneintrag</div>"
+            + "<div>" + xmlEscape(item.optionTitle || optionFieldLabels[item.optionKey] || "Liste")
+            + ": <span class=\"pool-option-value\">" + xmlEscape(item.optionValue || "") + "</span></div>";
+          row.appendChild(optionBox);
+        } else {
+          const values = document.createElement("div");
+          values.className = "pool-suggestion-values";
+          values.innerHTML = renderSuggestionFoodSummary(displayFood);
+
+          const analysis = document.createElement("div");
+          analysis.className = "pool-suggestion-analysis";
+          analysis.innerHTML = renderSuggestionAnalysis(displayFood);
+
+          row.appendChild(values);
+          row.appendChild(analysis);
+
+          if (isChange) {
+            const compare = document.createElement("div");
+            compare.className = "pool-change-compare";
+            compare.innerHTML = renderChangeComparison(oldFood, newFood);
+            row.appendChild(compare);
+          }
+
+          const missingBox = renderMissingOptionsBox(item.id, displayFood);
+          if (missingBox) row.appendChild(missingBox);
         }
 
         const actions = document.createElement("div");
@@ -2890,8 +3035,8 @@
 
         const approve = document.createElement("button");
         approve.type = "button";
-        approve.className = "approve-pool-btn";
-        approve.textContent = isChange ? "Änderung freigeben" : "Freigeben";
+        approve.className = isOption ? "approve-option-btn" : "approve-pool-btn";
+        approve.textContent = isOption ? "Eintrag speichern" : (isChange ? "Änderung freigeben" : "Freigeben");
         approve.onclick = () => approvePoolSuggestion(item.id);
 
         const reject = document.createElement("button");
@@ -2915,12 +3060,27 @@
       if (!item) return;
 
       const isChange = item.suggestionType === "change";
+      const isOption = item.suggestionType === "option";
 
-      if (!confirm(isChange ? "Änderung im Futterpool freigeben?" : "Vorschlag in den Futterpool übernehmen?")) return;
+      if (!confirm(isOption ? "Listeneintrag speichern?" : (isChange ? "Änderung im Futterpool freigeben?" : "Vorschlag in den Futterpool übernehmen?"))) return;
 
       const now = new Date().toISOString();
 
       try {
+        if (isOption) {
+          const saved = await addOptionValue(item.optionKey, item.optionValue, true);
+
+          await poolSuggestionsCollection().doc(id).set({
+            status: "approved",
+            approvedAt: now,
+            approvedBy: currentUser.email || "",
+            optionSaved: !!saved
+          }, { merge: true });
+
+          showMessage("poolSuggestionsNotice", saved ? "Listeneintrag wurde gespeichert." : "Listeneintrag war bereits vorhanden.");
+          return;
+        }
+
         if (isChange) {
           const targetId = item.targetAdminFoodId || item.targetPoolFoodId;
           const newFood = item.newFood || item;
@@ -3024,6 +3184,8 @@
       el("chooserSearch").value = el(inputId).value || "";
       const saveBtn = el("chooserSaveNewButton");
       if (saveBtn) saveBtn.style.display = isCurrentAdmin() ? "inline-flex" : "none";
+      const suggestBtn = el("chooserSuggestButton");
+      if (suggestBtn) suggestBtn.style.display = isCurrentAdmin() ? "none" : "inline-flex";
       el("chooserOverlay").classList.add("visible");
       renderChooserList();
       setTimeout(() => el("chooserSearch").focus(), 80);
@@ -3080,6 +3242,62 @@
       const saved = await addOptionValue(chooserOptionsId, value, false);
       if (saved && chooserTargetInput) {
         el(chooserTargetInput).value = normalizeOptionValue(value);
+      }
+    }
+
+    function optionValueExists(key, value) {
+      const clean = normalizeOptionValue(value).toLocaleLowerCase("de");
+      if (!clean) return true;
+      return (suggestionOptions[key] || []).some(item => normalizeOptionValue(item).toLocaleLowerCase("de") === clean);
+    }
+
+    async function suggestOptionValue(key, value, source) {
+      if (!currentUser) {
+        showMessage("notice", "Bitte zuerst einloggen.");
+        return false;
+      }
+
+      const clean = normalizeOptionValue(value);
+      if (!clean || !key) {
+        showMessage("notice", "Bitte zuerst einen Eintrag eingeben.");
+        return false;
+      }
+
+      if (optionValueExists(key, clean)) {
+        showMessage("notice", "Dieser Eintrag ist bereits in der Liste vorhanden.");
+        return false;
+      }
+
+      const suggestion = {
+        suggestionType: "option",
+        optionKey: key,
+        optionTitle: optionFieldLabels[key] || optionDocs[key]?.title || key,
+        optionValue: clean,
+        source: source || "chooser",
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        suggestedByUid: currentUser.uid,
+        suggestedByEmail: currentUser.email || ""
+      };
+
+      try {
+        await poolSuggestionsCollection().add(suggestion);
+        showMessage("notice", "Eintrag wurde als Listen-Vorschlag gesendet.");
+        return true;
+      } catch (error) {
+        showMessage("notice", "Listen-Vorschlag konnte nicht gesendet werden: " + error.message);
+        return false;
+      }
+    }
+
+    async function suggestChooserTextAsOption() {
+      const value = el("chooserSearch").value.trim();
+      if (!value || !chooserOptionsId) return;
+
+      const sent = await suggestOptionValue(chooserOptionsId, value, "chooser");
+      if (sent && chooserTargetInput) {
+        el(chooserTargetInput).value = normalizeOptionValue(value);
+        closeChooser();
       }
     }
 
@@ -3743,6 +3961,7 @@
       const item = buildFoodItemFromForm(String(Date.now()), false);
 
       const suggestion = {
+        suggestionType: "newFood",
         brand: item.brand,
         sort: item.sort,
         packaging: item.packaging,
@@ -3750,6 +3969,7 @@
         lifeAge: item.lifeAge,
         values: item.values,
         result: item.result,
+        missingOptions: getMissingOptionsForFood(item),
         status: "pending",
         createdAt: new Date().toISOString(),
         suggestedByUid: currentUser.uid,
@@ -3808,6 +4028,7 @@
         lifeAge: newFood.lifeAge,
         values: newFood.values,
         result: newFood.result,
+        missingOptions: getMissingOptionsForFood(newFood),
         status: "pending",
         createdAt: new Date().toISOString(),
         suggestedByUid: currentUser.uid,
