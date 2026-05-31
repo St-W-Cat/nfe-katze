@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version73-freigabe-stabil-direkt -->
+  <!-- Version: version74-rollback-stabil-ohne-mitteilungen -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -663,75 +663,6 @@
       padding-right: 2px;
       padding-bottom: 8px;
     }
-    .notifications-card {
-      grid-template-rows: auto auto auto 1fr;
-    }
-    .notifications-actions {
-      display: flex;
-      justify-content: center;
-      padding: 2px 0 8px;
-    }
-    .notifications-mark-all {
-      min-width: 0;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 900;
-      background: #e2f3ff;
-      color: #1d5f8f;
-    }
-    .notifications-list {
-      display: grid;
-      align-content: start;
-      gap: 8px;
-      min-height: 0;
-      overflow: auto;
-      overscroll-behavior: contain;
-      padding-right: 2px;
-      padding-bottom: 8px;
-    }
-    .notification-item {
-      display: grid;
-      gap: 5px;
-      border: 1px solid var(--line);
-      background: #fffdfb;
-      border-radius: 16px;
-      padding: 10px;
-    }
-    .notification-item.unread {
-      background: #f4fbff;
-      border-color: #b8ddf5;
-    }
-    .notification-title {
-      font-size: 14px;
-      font-weight: 900;
-      color: var(--text);
-      line-height: 1.25;
-    }
-    .notification-text {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.35;
-    }
-    .notification-meta {
-      font-size: 11px;
-      color: #9aa6b8;
-      line-height: 1.2;
-    }
-    .notification-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 6px;
-    }
-    .notification-actions button {
-      min-width: 0;
-      padding: 7px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 900;
-      background: #e2f3ff;
-      color: #1d5f8f;
-    }
     .pool-suggestion-item {
       display: grid;
       gap: 6px;
@@ -1241,8 +1172,7 @@
     .logout-mini,
     .lists-mini,
     .users-mini,
-    .pool-mini,
-    .notifications-mini {
+    .pool-mini {
       padding: 7px 10px;
       border-radius: 999px;
       font-size: 12px;
@@ -1260,8 +1190,7 @@
       background: #fff0b8;
       color: #b87900;
     }
-    .pool-mini,
-    .notifications-mini {
+    .pool-mini {
       background: #e2f3ff;
       color: #1d5f8f;
     }
@@ -1331,7 +1260,6 @@
     <section id="userCard" class="user-mini" style="display:none">
       <div class="auth-status">
         <span class="auth-label">Angemeldet als <span id="userEmail" class="auth-email"></span></span>
-        <button id="openNotificationsButton" class="notifications-mini" onclick="openNotifications()" style="display:none">Mitteilungen</button>
         <button id="openListsButton" class="lists-mini" onclick="openListsAdmin()" style="display:none">Listen</button>
         <button id="openUsersButton" class="users-mini" onclick="openUsersAdmin()" style="display:none">Nutzer</button>
         <button id="openPoolSuggestionsButton" class="pool-mini" onclick="openPoolSuggestionsAdmin()" style="display:none">Pool Vorschläge</button>
@@ -1546,21 +1474,6 @@
       </section>
     </div>
 
-    <div id="notificationsOverlay" class="admin-options-overlay" style="display:none" onclick="closeNotifications(event)">
-      <section id="notificationsCard" class="card admin-options-card notifications-card" onclick="event.stopPropagation()">
-        <div class="admin-head">
-          <h2>Mitteilungen</h2>
-          <button type="button" class="admin-close" aria-label="Mitteilungen schließen" onclick="closeNotifications()">×</button>
-        </div>
-
-        <div id="notificationsNotice" class="notice"></div>
-        <div class="notifications-actions">
-          <button type="button" class="secondary notifications-mark-all" onclick="markAllNotificationsRead()">Alle gelesen</button>
-        </div>
-        <div id="notificationsList" class="notifications-list"></div>
-      </section>
-    </div>
-
     <div id="poolSuggestionsOverlay" class="admin-options-overlay" style="display:none" onclick="closePoolSuggestionsAdmin(event)">
       <section id="poolSuggestionsCard" class="card admin-options-card pool-suggestions-card" onclick="event.stopPropagation()">
         <div class="admin-head">
@@ -1619,7 +1532,7 @@
     </section>
 
     </div>
-    <div class="version-note">v73 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v74 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2214,8 +2127,6 @@
     let unsubscribePoolFavorites = null;
     let unsubscribePoolSuggestions = null;
     let unsubscribeDeletedPoolSuggestions = null;
-    let unsubscribePersonalNotifications = null;
-    let unsubscribeGlobalNotifications = null;
     let accessUsers = [];
     let poolFoods = [];
     let poolFavoriteIds = new Set();
@@ -2227,9 +2138,6 @@
     let adminPoolSyncQueued = false;
     let selectedPoolFoodIdForChange = null;
     let activePoolSuggestionFilter = "all";
-    let personalNotifications = [];
-    let globalNotifications = [];
-    let readGlobalNotificationIds = new Set();
     let currentAccessStatus = "unknown";
 
     function normalizeOptionValue(value) {
@@ -2269,7 +2177,6 @@
       setUsersVisibility();
       setPoolSuggestionsVisibility();
       setFoodSuggestButtonVisibility();
-      updateNotificationsButtonLabel();
     }
 
     function openListsAdmin() {
@@ -3244,55 +3151,6 @@
       });
     }
 
-    async function finishPoolSuggestionAfterApproval(id) {
-      const now = new Date().toISOString();
-
-      // Sofort lokal ausblenden, damit der Vorschlag nicht in der Anzeige hängen bleibt.
-      rememberLocalDeletedPoolSuggestionId(id);
-      poolSuggestions = poolSuggestions.filter(entry => entry.id !== id);
-      updatePoolSuggestionsButtonLabel();
-      renderPoolSuggestionsAdmin();
-
-      // Zusätzlich in Firebase als erledigt markieren und möglichst löschen.
-      try {
-        await poolSuggestionsCollection().doc(id).set({
-          status: "approved",
-          approvedAt: now,
-          approvedBy: currentUser.email || "",
-          removedAt: now
-        }, { merge: true });
-      } catch (error) {
-        console.warn("Vorschlag konnte nicht als erledigt markiert werden:", error);
-      }
-
-      try {
-        await deletedPoolSuggestionsCollection().doc(id).set({
-          suggestionId: id,
-          deletedAt: now,
-          deletedBy: currentUser.email || "",
-          reason: "approved"
-        }, { merge: true });
-      } catch (error) {
-        console.warn("Sperrliste konnte nicht geschrieben werden:", error);
-      }
-
-      try {
-        await poolSuggestionsCollection().doc(id).delete();
-      } catch (error) {
-        console.warn("Vorschlag konnte nicht direkt gelöscht werden:", error);
-      }
-    }
-
-    function notifyApprovalLater(callback) {
-      setTimeout(async () => {
-        try {
-          await callback();
-        } catch (error) {
-          console.warn("Mitteilung nach Freigabe konnte nicht erstellt werden:", error);
-        }
-      }, 0);
-    }
-
     async function approvePoolSuggestion(id) {
       if (!isCurrentAdmin()) return;
 
@@ -3308,33 +3166,16 @@
 
       try {
         if (isOption) {
-          const key = item.optionKey;
-          const value = item.optionValue || "";
-          const alreadyExists = optionValueExists(key, value);
-          let saved = false;
+          const saved = await addOptionValue(item.optionKey, item.optionValue, true);
 
-          if (!alreadyExists) {
-            saved = await addOptionValue(key, value, true);
-          }
+          await poolSuggestionsCollection().doc(id).set({
+            status: "approved",
+            approvedAt: now,
+            approvedBy: currentUser.email || "",
+            optionSaved: !!saved
+          }, { merge: true });
 
-          const nowExists = optionValueExists(key, value);
-          if (!saved && !alreadyExists && !nowExists) {
-            throw new Error("Listeneintrag konnte nicht gespeichert werden.");
-          }
-
-          await finishPoolSuggestionAfterApproval(id);
-
-          if (item.suggestedByUid) {
-            notifyApprovalLater(() => tryCreatePersonalNotification(
-              item.suggestedByUid,
-              "Listen-Vorschlag übernommen",
-              "Dein Vorschlag „" + (item.optionValue || "") + "“ wurde in die Liste " + (item.optionTitle || "Auswahlliste") + " übernommen.",
-              "suggestion-option-approved",
-              id
-            ));
-          }
-
-          showMessage("poolSuggestionsNotice", saved ? "Listeneintrag wurde gespeichert." : "Listeneintrag war bereits vorhanden und wurde aus den Vorschlägen entfernt.");
+          showMessage("poolSuggestionsNotice", saved ? "Listeneintrag wurde gespeichert." : "Listeneintrag war bereits vorhanden.");
           return;
         }
 
@@ -3360,20 +3201,12 @@
             updatedBy: currentUser.email || ""
           }, { merge: true });
 
-          await finishPoolSuggestionAfterApproval(id);
-
-          notifyApprovalLater(async () => {
-            if (item.suggestedByUid) {
-              await tryCreatePersonalNotification(
-                item.suggestedByUid,
-                "Änderungsvorschlag übernommen",
-                "Dein Änderungsvorschlag zu „" + foodLabel(newFood) + "“ wurde übernommen.",
-                "suggestion-change-approved",
-                id
-              );
-            }
-            await tryCreateGlobalFoodNotification("changed", { ...newFood, id: targetId }, targetId);
-          });
+          await poolSuggestionsCollection().doc(id).set({
+            status: "approved",
+            approvedAt: now,
+            approvedBy: currentUser.email || "",
+            adminFoodId: targetId
+          }, { merge: true });
 
           showMessage("poolSuggestionsNotice", "Änderung wurde freigegeben und in deiner Admin-Futterliste übernommen.");
           return;
@@ -3397,27 +3230,16 @@
         };
 
         await userFoodsCollection().doc(foodId).set(adminFoodItem);
-
-        await finishPoolSuggestionAfterApproval(id);
-
-        notifyApprovalLater(async () => {
-          if (item.suggestedByUid) {
-            await tryCreatePersonalNotification(
-              item.suggestedByUid,
-              "Futtervorschlag übernommen",
-              "Dein Futtervorschlag „" + foodLabel(adminFoodItem) + "“ wurde in den Futterpool übernommen.",
-              "suggestion-food-approved",
-              id
-            );
-          }
-          await tryCreateGlobalFoodNotification("added", adminFoodItem, foodId);
-        });
+        await poolSuggestionsCollection().doc(id).set({
+          status: "approved",
+          approvedAt: now,
+          approvedBy: currentUser.email || "",
+          adminFoodId: foodId
+        }, { merge: true });
 
         showMessage("poolSuggestionsNotice", "Vorschlag wurde freigegeben und in deine Admin-Futterliste übernommen.");
       } catch (error) {
-        const msg = "Vorschlag konnte nicht freigegeben werden: " + error.message;
-        showMessage("poolSuggestionsNotice", msg);
-        alert(msg);
+        showMessage("poolSuggestionsNotice", "Vorschlag konnte nicht freigegeben werden: " + error.message);
       }
     }
 
@@ -3642,7 +3464,6 @@
     const lastValuesKey = "nfe_cat_last_values_pwa_v2";
     const foodListCollapsedKey = "nfe_cat_food_items_collapsed_v1";
     const deletedPoolSuggestionLocalKey = "nfe_cat_deleted_pool_suggestions_v1";
-    const readGlobalNotificationsLocalKey = "nfe_cat_read_global_notifications_v1";
     let foods = [];
     let currentUser = null;
     let unsubscribeFoods = null;
@@ -3677,287 +3498,6 @@
       saveLocalDeletedPoolSuggestionIds();
     }
 
-    function getGlobalReadStorageKey() {
-      return currentUser ? readGlobalNotificationsLocalKey + "_" + currentUser.uid : readGlobalNotificationsLocalKey;
-    }
-
-    function loadReadGlobalNotificationIds() {
-      try {
-        const raw = localStorage.getItem(getGlobalReadStorageKey());
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
-      } catch (e) {
-        return [];
-      }
-    }
-
-    function saveReadGlobalNotificationIds() {
-      try {
-        localStorage.setItem(getGlobalReadStorageKey(), JSON.stringify([...readGlobalNotificationIds]));
-      } catch (e) {}
-    }
-
-    function foodLabel(item) {
-      return [item?.brand || "Unbenanntes Futter", item?.sort].filter(Boolean).join(" – ");
-    }
-
-    function makeNotificationPayload(title, text, type, relatedId) {
-      return {
-        title: title || "Mitteilung",
-        text: text || "",
-        type: type || "info",
-        relatedId: relatedId || "",
-        createdAt: new Date().toISOString(),
-        createdBy: currentUser?.email || ""
-      };
-    }
-
-    async function tryCreatePersonalNotification(uid, title, text, type, relatedId) {
-      try {
-        await createPersonalNotification(uid, title, text, type, relatedId);
-      } catch (error) {
-        console.warn("Mitteilung konnte nicht erstellt werden:", error);
-      }
-    }
-
-    async function tryCreateGlobalFoodNotification(action, item, relatedId) {
-      try {
-        await createGlobalFoodNotification(action, item, relatedId);
-      } catch (error) {
-        console.warn("Globale Mitteilung konnte nicht erstellt werden:", error);
-      }
-    }
-
-    async function createPersonalNotification(uid, title, text, type, relatedId) {
-      if (!uid) return;
-      try {
-        const collection = userNotificationsCollection(uid);
-        if (!collection) return;
-        await collection.add({
-          ...makeNotificationPayload(title, text, type, relatedId),
-          readAt: ""
-        });
-      } catch (error) {
-        console.warn("Persönliche Mitteilung konnte nicht erstellt werden:", error);
-      }
-    }
-
-    async function createGlobalNotification(title, text, type, relatedId) {
-      if (!isCurrentAdmin()) return;
-      try {
-        await globalNotificationsCollection().add(makeNotificationPayload(title, text, type, relatedId));
-      } catch (error) {
-        console.warn("Globale Mitteilung konnte nicht erstellt werden:", error);
-      }
-    }
-
-    async function createGlobalFoodNotification(action, item, relatedId) {
-      if (!isCurrentAdmin()) return;
-      const label = foodLabel(item);
-      const titles = {
-        added: "Neues Futter im Futterpool",
-        changed: "Futterpool wurde geändert",
-        deleted: "Futter wurde aus dem Futterpool entfernt"
-      };
-      const texts = {
-        added: label + " wurde zum Futterpool hinzugefügt.",
-        changed: label + " wurde im Futterpool geändert.",
-        deleted: label + " wurde aus dem Futterpool entfernt."
-      };
-      await createGlobalNotification(titles[action] || "Futterpool geändert", texts[action] || label, "food-" + action, relatedId || item?.id || "");
-    }
-
-    function stopNotificationsSubscription() {
-      if (unsubscribePersonalNotifications) {
-        try { unsubscribePersonalNotifications(); } catch (e) {}
-        unsubscribePersonalNotifications = null;
-      }
-      if (unsubscribeGlobalNotifications) {
-        try { unsubscribeGlobalNotifications(); } catch (e) {}
-        unsubscribeGlobalNotifications = null;
-      }
-      personalNotifications = [];
-      globalNotifications = [];
-      readGlobalNotificationIds = new Set(loadReadGlobalNotificationIds());
-      updateNotificationsButtonLabel();
-      renderNotifications();
-    }
-
-    function subscribeToNotifications() {
-      stopNotificationsSubscription();
-      if (!currentUser || currentAccessStatus !== "approved") return;
-
-      readGlobalNotificationIds = new Set(loadReadGlobalNotificationIds());
-
-      const personalCollection = userNotificationsCollection();
-      if (personalCollection) {
-        unsubscribePersonalNotifications = personalCollection
-          .orderBy("createdAt", "desc")
-          .limit(50)
-          .onSnapshot(snapshot => {
-            personalNotifications = snapshot.docs.map(doc => ({ id: doc.id, scope: "personal", ...doc.data() }));
-            updateNotificationsButtonLabel();
-            renderNotifications();
-          }, error => {
-            showMessage("syncNotice", "Mitteilungen konnten nicht geladen werden: " + error.message);
-          });
-      }
-
-      unsubscribeGlobalNotifications = globalNotificationsCollection()
-        .orderBy("createdAt", "desc")
-        .limit(50)
-        .onSnapshot(snapshot => {
-          globalNotifications = snapshot.docs.map(doc => ({ id: doc.id, scope: "global", ...doc.data() }));
-          updateNotificationsButtonLabel();
-          renderNotifications();
-        }, error => {
-          showMessage("syncNotice", "Allgemeine Mitteilungen konnten nicht geladen werden: " + error.message);
-        });
-    }
-
-    function isGlobalNotificationRead(id) {
-      return readGlobalNotificationIds.has(id);
-    }
-
-    function isNotificationUnread(item) {
-      return item.scope === "global" ? !isGlobalNotificationRead(item.id) : !item.readAt;
-    }
-
-    function getAllNotifications() {
-      return [...personalNotifications, ...globalNotifications]
-        .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
-    }
-
-    function updateNotificationsButtonLabel() {
-      const btn = el("openNotificationsButton");
-      if (!btn) return;
-
-      const show = !!currentUser && currentAccessStatus === "approved";
-      btn.style.display = show ? "inline-flex" : "none";
-      if (!show) return;
-
-      const unread = getAllNotifications().filter(isNotificationUnread).length;
-      btn.innerHTML = unread
-        ? 'Mitteilungen <span class="pending-count-dot">' + unread + '</span>'
-        : "Mitteilungen";
-    }
-
-    function openNotifications() {
-      if (!currentUser || currentAccessStatus !== "approved") return;
-      const overlay = el("notificationsOverlay");
-      if (!overlay) return;
-      overlay.classList.add("visible");
-      overlay.style.display = "flex";
-      document.body.style.overflow = "hidden";
-      renderNotifications();
-    }
-
-    function closeNotifications(event) {
-      if (event && event.target && event.target.id !== "notificationsOverlay") return;
-      const overlay = el("notificationsOverlay");
-      if (!overlay) return;
-      overlay.classList.remove("visible");
-      overlay.style.display = "none";
-      document.body.style.overflow = "";
-    }
-
-    function renderNotifications() {
-      const list = el("notificationsList");
-      if (!list) return;
-      list.innerHTML = "";
-
-      if (!currentUser || currentAccessStatus !== "approved") return;
-
-      const items = getAllNotifications();
-
-      if (!items.length) {
-        const empty = document.createElement("div");
-        empty.className = "empty";
-        empty.textContent = "Noch keine Mitteilungen.";
-        list.appendChild(empty);
-        return;
-      }
-
-      items.forEach(item => {
-        const unread = isNotificationUnread(item);
-        const row = document.createElement("div");
-        row.className = "notification-item" + (unread ? " unread" : "");
-
-        const title = document.createElement("div");
-        title.className = "notification-title";
-        title.textContent = item.title || "Mitteilung";
-
-        const text = document.createElement("div");
-        text.className = "notification-text";
-        text.textContent = item.text || "";
-
-        const meta = document.createElement("div");
-        meta.className = "notification-meta";
-        meta.textContent = (item.scope === "global" ? "Allgemein" : "Persönlich") + " · " + (item.createdAt || "–");
-
-        const actions = document.createElement("div");
-        actions.className = "notification-actions";
-
-        if (unread) {
-          const readBtn = document.createElement("button");
-          readBtn.type = "button";
-          readBtn.textContent = "gelesen";
-          readBtn.onclick = () => markNotificationRead(item);
-          actions.appendChild(readBtn);
-        }
-
-        row.appendChild(title);
-        row.appendChild(text);
-        row.appendChild(meta);
-        row.appendChild(actions);
-        list.appendChild(row);
-      });
-    }
-
-    async function markNotificationRead(item) {
-      if (!item) return;
-
-      try {
-        if (item.scope === "global") {
-          readGlobalNotificationIds.add(item.id);
-          saveReadGlobalNotificationIds();
-        } else {
-          const collection = userNotificationsCollection();
-          if (collection) {
-            await collection.doc(item.id).set({ readAt: new Date().toISOString() }, { merge: true });
-          }
-        }
-        updateNotificationsButtonLabel();
-        renderNotifications();
-      } catch (error) {
-        showMessage("notificationsNotice", "Mitteilung konnte nicht als gelesen markiert werden: " + error.message);
-      }
-    }
-
-    async function markAllNotificationsRead() {
-      const items = getAllNotifications().filter(isNotificationUnread);
-      if (!items.length) return;
-
-      try {
-        const now = new Date().toISOString();
-        const collection = userNotificationsCollection();
-
-        for (const item of items) {
-          if (item.scope === "global") {
-            readGlobalNotificationIds.add(item.id);
-          } else if (collection) {
-            await collection.doc(item.id).set({ readAt: now }, { merge: true });
-          }
-        }
-
-        saveReadGlobalNotificationIds();
-        updateNotificationsButtonLabel();
-        renderNotifications();
-      } catch (error) {
-        showMessage("notificationsNotice", "Mitteilungen konnten nicht als gelesen markiert werden: " + error.message);
-      }
-    }
-
     function getStoredFoods() {
       try {
         const data = localStorage.getItem(storeKey);
@@ -3988,16 +3528,6 @@
     function userPoolFavoritesCollection() {
       if (!currentUser) return null;
       return db.collection("users").doc(currentUser.uid).collection("poolFavorites");
-    }
-
-    function userNotificationsCollection(uid) {
-      const userId = uid || currentUser?.uid;
-      if (!userId) return null;
-      return db.collection("users").doc(userId).collection("notifications");
-    }
-
-    function globalNotificationsCollection() {
-      return db.collection("globalNotifications");
     }
 
     function setStoredFoods(nextFoods) {
@@ -4774,11 +4304,6 @@
       try {
         const collection = userFoodsCollection();
         await collection.doc(item.id).set(item);
-
-        if (isCurrentAdmin()) {
-          await tryCreateGlobalFoodNotification(wasEditing ? "changed" : "added", item, item.id);
-        }
-
         clearAfterSave(forceNew ? "Neues Futter gespeichert & synchronisiert." : (wasEditing ? "Änderung gespeichert & synchronisiert." : "Futter gespeichert & synchronisiert."));
       } catch (error) {
         showMessage("notice", "Futter konnte nicht gespeichert werden: " + error.message);
@@ -4915,7 +4440,6 @@
 
       try {
         await userFoodsCollection().doc(id).delete();
-        await tryCreateGlobalFoodNotification("deleted", item, id);
       } catch (error) {
         showMessage("syncNotice", "Futterpool-Eintrag konnte nicht gelöscht werden: " + error.message);
       }
@@ -4950,9 +4474,6 @@
 
       try {
         await userFoodsCollection().doc(id).delete();
-        if (isCurrentAdmin()) {
-          await tryCreateGlobalFoodNotification("deleted", item, id);
-        }
         if (editingId === id) newFood();
       } catch (error) {
         showMessage("syncNotice", "Futter konnte nicht gelöscht werden: " + error.message);
@@ -5466,7 +4987,6 @@
       stopOptionsSubscription();
       stopUserAccessSubscription();
       stopPoolSubscriptions();
-      stopNotificationsSubscription();
 
       if (currentUser) {
         el("authCard").style.display = "none";
@@ -5493,7 +5013,6 @@
           resetTransientFieldsOnStart();
           resetSuggestionOptionsToDefault();
           stopPoolSubscriptions();
-          stopNotificationsSubscription();
           showAccessCard(accessStatus);
           return;
         }
@@ -5507,7 +5026,6 @@
         subscribeToUserAccess();
         subscribeToDeletedPoolSuggestions();
         subscribeToPoolSuggestions();
-        subscribeToNotifications();
         setTimeout(runVersion49AutoMigration, 900);
         resetTransientFieldsOnStart();
       } else {
@@ -5523,7 +5041,6 @@
         el("userEmail").textContent = "";
         resetSuggestionOptionsToDefault();
         stopPoolSubscriptions();
-        stopNotificationsSubscription();
         setAdminVisibility();
       }
     });
