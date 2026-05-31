@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version63-listen-vorschlaege -->
+  <!-- Version: version64-getrennte-listen-vorschlaege -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1497,7 +1497,7 @@
     </section>
 
     </div>
-    <div class="version-note">v63 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v64 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -3026,8 +3026,6 @@
             row.appendChild(compare);
           }
 
-          const missingBox = renderMissingOptionsBox(item.id, displayFood);
-          if (missingBox) row.appendChild(missingBox);
         }
 
         const actions = document.createElement("div");
@@ -3288,6 +3286,40 @@
         showMessage("notice", "Listen-Vorschlag konnte nicht gesendet werden: " + error.message);
         return false;
       }
+    }
+
+    async function createOptionSuggestionsForFood(food, source, linkedSuggestionId) {
+      if (!currentUser || isCurrentAdmin()) return 0;
+
+      const missing = getMissingOptionsForFood(food);
+      let count = 0;
+
+      for (const item of missing) {
+        const clean = normalizeOptionValue(item.value);
+        if (!clean || optionValueExists(item.key, clean)) continue;
+
+        const suggestion = {
+          suggestionType: "option",
+          optionKey: item.key,
+          optionTitle: item.label,
+          optionValue: clean,
+          source: source || "foodSuggestion",
+          linkedSuggestionId: linkedSuggestionId || "",
+          status: "pending",
+          createdAt: new Date().toISOString(),
+          suggestedByUid: currentUser.uid,
+          suggestedByEmail: currentUser.email || ""
+        };
+
+        try {
+          await poolSuggestionsCollection().add(suggestion);
+          count++;
+        } catch (error) {
+          console.warn("Listen-Vorschlag konnte nicht automatisch erstellt werden:", error);
+        }
+      }
+
+      return count;
     }
 
     async function suggestChooserTextAsOption() {
@@ -3977,8 +4009,11 @@
       };
 
       try {
-        await poolSuggestionsCollection().add(suggestion);
-        showMessage("notice", "Futter wurde als Pool-Vorschlag gesendet.");
+        const docRef = await poolSuggestionsCollection().add(suggestion);
+        const optionCount = await createOptionSuggestionsForFood(item, "newFood", docRef.id);
+        showMessage("notice", optionCount
+          ? "Futter wurde vorgeschlagen. Zusätzlich wurden " + optionCount + " Listen-Vorschläge gesendet."
+          : "Futter wurde als Pool-Vorschlag gesendet.");
       } catch (error) {
         showMessage("notice", "Vorschlag konnte nicht gesendet werden: " + error.message);
       }
@@ -4036,8 +4071,11 @@
       };
 
       try {
-        await poolSuggestionsCollection().add(suggestion);
-        showMessage("notice", "Änderung wurde als Pool-Vorschlag gesendet.");
+        const docRef = await poolSuggestionsCollection().add(suggestion);
+        const optionCount = await createOptionSuggestionsForFood(newFood, "changeSuggestion", docRef.id);
+        showMessage("notice", optionCount
+          ? "Änderung wurde vorgeschlagen. Zusätzlich wurden " + optionCount + " Listen-Vorschläge gesendet."
+          : "Änderung wurde als Pool-Vorschlag gesendet.");
       } catch (error) {
         showMessage("notice", "Änderungsvorschlag konnte nicht gesendet werden: " + error.message);
       }
