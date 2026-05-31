@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version57-futterpool-adminliste -->
+  <!-- Version: version59-pool-vorschlag-ohne-pruefen -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -670,6 +670,26 @@
       border-radius: 999px;
       font-size: 12px;
       font-weight: 900;
+    }
+    .pool-suggestion-analysis {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .pool-suggestion-analysis span {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      line-height: 1.25;
+    }
+    .pool-suggestion-analysis strong {
+      color: var(--text);
     }
     .approve-pool-btn {
       background: #e3f6ec;
@@ -1404,7 +1424,7 @@
     </section>
 
     </div>
-    <div class="version-note">v57 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v59 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2762,6 +2782,15 @@
           + "NfE: " + fmt(item.result?.nfeFresh || 0) + " · "
           + (item.result?.ratingText || "");
 
+        const analysis = document.createElement("div");
+        analysis.className = "pool-suggestion-analysis";
+        analysis.innerHTML =
+          "<span>Rohprotein <strong>" + fmt(item.values?.protein ?? 0) + " %</strong></span>"
+          + "<span>Rohfett <strong>" + fmt(item.values?.fett ?? 0) + " %</strong></span>"
+          + "<span>Rohfaser <strong>" + fmt(item.values?.faser ?? 0) + " %</strong></span>"
+          + "<span>Rohasche <strong>" + fmt(item.values?.asche ?? 0) + " %</strong></span>"
+          + "<span>Feuchtigkeit <strong>" + fmt(item.values?.feuchte ?? 0) + " %</strong></span>";
+
         const actions = document.createElement("div");
         actions.className = "pool-suggestion-actions";
 
@@ -2783,6 +2812,7 @@
         row.appendChild(title);
         row.appendChild(meta);
         row.appendChild(values);
+        row.appendChild(analysis);
         row.appendChild(actions);
         list.appendChild(row);
       });
