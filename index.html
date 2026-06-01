@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>NfE-Rechner Katze</title>
-  <!-- Version: version62-admin-ohne-futter-vorschlagen -->
+  <!-- Version: version82-v62-sanfte-optimierung -->
   <style>
     :root {
       --bg: #f3f8ff;
@@ -1457,7 +1457,7 @@
     </section>
 
     </div>
-    <div class="version-note">v62 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
+    <div class="version-note">v82 · <button type="button" class="footer-privacy-link" onclick="openPrivacy()">Datenschutz</button></div>
   </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -2091,6 +2091,12 @@
       setUsersVisibility();
       setPoolSuggestionsVisibility();
       setFoodSuggestButtonVisibility();
+
+      const usersBtn = el("openUsersButton");
+      if (usersBtn && isCurrentAdmin() && !unsubscribeUserAccess) usersBtn.textContent = "Nutzer";
+
+      const suggestionsBtn = el("openPoolSuggestionsButton");
+      if (suggestionsBtn && isCurrentAdmin() && !unsubscribePoolSuggestions) suggestionsBtn.textContent = "Pool Vorschläge";
     }
 
     function openListsAdmin() {
@@ -2593,6 +2599,7 @@
       overlay.classList.add("visible");
       overlay.style.display = "flex";
       document.body.style.overflow = "hidden";
+      subscribeToUserAccess();
       renderUserAccessAdmin();
     }
 
@@ -2603,6 +2610,7 @@
       overlay.classList.remove("visible");
       overlay.style.display = "none";
       document.body.style.overflow = "";
+      stopUserAccessSubscription();
     }
 
     function stopUserAccessSubscription() {
@@ -2773,6 +2781,7 @@
       overlay.classList.add("visible");
       overlay.style.display = "flex";
       document.body.style.overflow = "hidden";
+      subscribeToPoolSuggestions();
       renderPoolSuggestionsAdmin();
     }
 
@@ -2783,6 +2792,10 @@
       overlay.classList.remove("visible");
       overlay.style.display = "none";
       document.body.style.overflow = "";
+      if (unsubscribePoolSuggestions) {
+        try { unsubscribePoolSuggestions(); } catch (e) {}
+        unsubscribePoolSuggestions = null;
+      }
     }
 
     function renderSuggestionFoodSummary(food) {
@@ -3241,6 +3254,26 @@
       return JSON.stringify(a || {}) === JSON.stringify(b || {});
     }
 
+    async function syncSingleAdminFoodToPool(item) {
+      if (!isCurrentAdmin() || !currentUser || !item?.id) return;
+      try {
+        await foodPoolCollection().doc(item.id).set(buildPoolMirrorFromAdminFood(item), { merge: true });
+      } catch (error) {
+        console.warn("Einzelner Futterpool-Sync fehlgeschlagen:", error);
+        showMessage("syncNotice", "Futterpool konnte nicht aktualisiert werden: " + error.message);
+      }
+    }
+
+    async function deleteSingleAdminFoodFromPool(id) {
+      if (!isCurrentAdmin() || !currentUser || !id) return;
+      try {
+        await foodPoolCollection().doc(id).delete();
+      } catch (error) {
+        console.warn("Futterpool-Eintrag konnte nicht entfernt werden:", error);
+        showMessage("syncNotice", "Futterpool konnte nicht aktualisiert werden: " + error.message);
+      }
+    }
+
     async function syncAdminFoodsToPool() {
       if (!isCurrentAdmin() || !currentUser) return;
 
@@ -3355,9 +3388,6 @@
         foodsLoading = false;
         foods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderFoods();
-        if (isCurrentAdmin()) {
-          setTimeout(syncAdminFoodsToPool, 300);
-        }
       }, error => {
         foodsLoading = false;
         showMessage("syncNotice", "Futter-Liste konnte nicht geladen werden: " + error.message);
@@ -3873,6 +3903,11 @@
       try {
         const collection = userFoodsCollection();
         await collection.doc(item.id).set(item);
+
+        if (isCurrentAdmin()) {
+          await syncSingleAdminFoodToPool(item);
+        }
+
         clearAfterSave(forceNew ? "Neues Futter gespeichert & synchronisiert." : (wasEditing ? "Änderung gespeichert & synchronisiert." : "Futter gespeichert & synchronisiert."));
       } catch (error) {
         showMessage("notice", "Futter konnte nicht gespeichert werden: " + error.message);
@@ -3885,7 +3920,12 @@
       el("saveTitle").textContent = "Futter bearbeiten";
       el("saveFoodButton").textContent = "Änderung speichern";
       el("saveAsNewButton").style.display = "inline-flex";
+
+      // Beim Bearbeiten eines Futters aus der eigenen Liste soll immer klar
+      // die normale Speicherfunktion genutzt werden.
+      setPoolChangeButtonVisible(false);
       setFoodSuggestButtonVisibility();
+
       renderFoods();
     }
 
@@ -4009,6 +4049,7 @@
 
       try {
         await userFoodsCollection().doc(id).delete();
+        await deleteSingleAdminFoodFromPool(id);
       } catch (error) {
         showMessage("syncNotice", "Futterpool-Eintrag konnte nicht gelöscht werden: " + error.message);
       }
@@ -4043,6 +4084,9 @@
 
       try {
         await userFoodsCollection().doc(id).delete();
+        if (isCurrentAdmin()) {
+          await deleteSingleAdminFoodFromPool(id);
+        }
         if (editingId === id) newFood();
       } catch (error) {
         showMessage("syncNotice", "Futter konnte nicht gelöscht werden: " + error.message);
@@ -4592,8 +4636,7 @@
         subscribeToFoods();
         subscribeToFoodPool();
         subscribeToPoolFavorites();
-        subscribeToUserAccess();
-        subscribeToPoolSuggestions();
+        // Nutzerliste und Pool-Vorschläge werden aus Spargründen erst beim Öffnen der Fenster geladen.
         setTimeout(runVersion49AutoMigration, 900);
         resetTransientFieldsOnStart();
       } else {
